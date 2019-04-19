@@ -21,13 +21,13 @@ object OrganizerApp extends App {
 
   val putioClient = new PutioClient {
     override lazy val token: AccessToken = "VTQWG4M3LK5I5LD7IL25"
-
-    override def createFolder(f: FolderId, parentId: FileId): Unit = ()
   }
 
   def run(): Unit = {
     scanFolders(tvShowFolderId)
   }
+
+  putioClient.moveFile(458115751,29172103 )
 
 
   private def scanFolders(folderId: FolderId) = {

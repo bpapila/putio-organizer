@@ -3,12 +3,14 @@ package org.papila.organizer.client
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.marshallers.sprayjson.SprayJsonSupport
+import akka.http.scaladsl.marshalling.Marshal
 import akka.http.scaladsl.model.Uri.Query
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.ActorMaterializer
 import org.papila.organizer.client.PutioClient.FileType.FileType
 import spray.json.{DefaultJsonProtocol, JsonFormat, RootJsonFormat}
+
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext}
 
@@ -58,8 +60,25 @@ trait PutioClient {
     Await.result(rs, 10 seconds)
   }
 
+  def moveFile(f: FileId, target: FileId)
+              (implicit ec: ExecutionContext, system: ActorSystem, materializer: ActorMaterializer): Unit = {
+    val uri = Uri("https://api.put.io/v2/files/move")
+      .withQuery(Query(tokenTuple))
 
+    println("Moving file uri: " + uri)
 
+    val body = FormData(("file_ids", f.toString), ("parent_id", target.toString))
+
+    Marshal(body).to[RequestEntity].map { entity =>
+      val eventualRes = Http().singleRequest(HttpRequest(method = HttpMethods.POST, uri = uri, entity = entity))
+      Await.result(eventualRes, 10 seconds) match {
+        case HttpResponse(StatusCodes.OK, _, e, _) =>
+        case x => throw new Exception(s"Move file failed: ${x.status} ${x.httpMessage}")
+      }
+    }
+
+    ()
+  }
 }
 
 object PutioClient {
