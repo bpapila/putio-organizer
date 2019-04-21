@@ -27,7 +27,7 @@ trait PutioClient {
                (implicit ec: ExecutionContext, system: ActorSystem, materializer: ActorMaterializer): FileListResponse = {
 
     val uri = url
-      .withQuery(Query(tokenTuple, ("fileType", t.toString), ("parent_id", f), ("per_page", perPage)))
+      .withQuery(Query(tokenTuple, ("file_type", t.toString), ("parent_id", f), ("per_page", perPage)))
 
     println(s"Listfiles: $uri")
 
@@ -43,25 +43,33 @@ trait PutioClient {
     Await.result(rs, 10 seconds)
   }
 
-  def createFolder(f: FolderId, parentId: FileId)
+  def createFolder(name: String, parentId: FileId)
                   (implicit ec: ExecutionContext, system: ActorSystem, materializer: ActorMaterializer): CreateFolderResponse = {
-    val uri = Uri("https://api.put.io/v2/files/create-folder")
-      .withQuery(Query(tokenTuple))
+    println(s"Creating fodler $name on parent $parentId")
 
-    val eventualRes = Http().singleRequest(HttpRequest(method = HttpMethods.POST, uri = uri))
+    val body = FormData(("name", name.toString), ("parent_id", parentId.toString))
 
-    val rs = for {res <- eventualRes
-                  createFolderRes <- res match {
-                    case HttpResponse(StatusCodes.OK, _, e, _) => Unmarshal(e).to[CreateFolderResponse]
-                    case x => throw new Exception(s"Create folder failed: ${x.status} ${x.httpMessage}")
-                  }
-    } yield createFolderRes
+    val res = Marshal(body).to[RequestEntity].flatMap { entity =>
+      val uri = Uri("https://api.put.io/v2/files/create-folder")
+        .withQuery(Query(tokenTuple))
 
-    Await.result(rs, 10 seconds)
+      val eventualRes = Http().singleRequest(HttpRequest(method = HttpMethods.POST, uri = uri, entity = entity))
+
+      for {res <- eventualRes
+                    createFolderRes <- res match {
+                      case HttpResponse(StatusCodes.OK, _, e, _) => Unmarshal(e).to[CreateFolderResponse]
+                      case x => throw new Exception(s"Create folder failed: ${x.status} ${x.httpMessage}")
+                    }
+      } yield createFolderRes
+    }
+
+    Await.result(res, 10 seconds)
   }
 
   def moveFile(f: FileId, target: FileId)
               (implicit ec: ExecutionContext, system: ActorSystem, materializer: ActorMaterializer): Unit = {
+    println(s"Moving file $f to $target")
+
     val uri = Uri("https://api.put.io/v2/files/move")
       .withQuery(Query(tokenTuple))
 
