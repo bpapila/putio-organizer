@@ -4,7 +4,7 @@ import org.scalatest.FlatSpec
 import org.scalatest.Matchers._
 
 class StringUtilsTest extends FlatSpec {
-  import StringUtils._
+  import org.papila.organizer.service.StringUtils._
 
   "extract name" should "extract series, season and episode" in {
     extractName("The.Walking.Dead.S09E15.The.Calm.Before.REPACK.1080p.AMZN.WEB-DL.DD+5.1.H.264-CasStudio.mkv") shouldBe ("The Walking Dead","09", "15")

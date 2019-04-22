@@ -1,4 +1,4 @@
-package org.papila.organizer
+package org.papila.organizer.service
 
 import org.papila.organizer.client.PutioClient.FileName
 

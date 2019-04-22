@@ -27,7 +27,7 @@ trait PutioClient {
                (implicit ec: ExecutionContext, system: ActorSystem, materializer: ActorMaterializer): FileListResponse = {
 
     val uri = url
-      .withQuery(Query(tokenTuple, ("file_type", t.toString), ("parent_id", f), ("per_page", perPage)))
+      .withQuery(Query(tokenTuple, ("file_type", t.toString), ("parent_id", f.toString), ("per_page", perPage)))
 
     println(s"Listfiles: $uri")
 
@@ -90,7 +90,7 @@ trait PutioClient {
 }
 
 object PutioClient {
-  type FolderId = String
+  type FolderId = Int
 
   object FileType extends Enumeration {
     type FileType = Value
