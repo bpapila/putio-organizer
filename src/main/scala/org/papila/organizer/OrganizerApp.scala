@@ -20,7 +20,6 @@ object OrganizerApp extends App {
 
   val DownloadsFolderId = 619201714
   val TvShowFolderId = 619877202
-  var seriesDict: Map[String, Series] = Map.empty
 
   val downloadsPerPage = "100"
   val videoPerPage = "100"
@@ -33,9 +32,9 @@ object OrganizerApp extends App {
     override val client: PutioClient = putioClient
   }
 
-  run2()
+  run()
 
-  def run2() = {
+  def run() = {
 
     var dict = scanner.scan(TvShowFolderId)
 
