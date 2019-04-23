@@ -31,10 +31,10 @@ class PutioScannerTest extends TestKit(ActorSystem("PutioScannerTest")) with Fla
   val seriesName = "The Series Name"
   val folderId = 100
   val name = "Season 06"
-  val parentId = 10
-  val seasonFolder = File(folderId, name, parentId)
+  val downloadsFolderId = 10
+  val seasonFolder = File(folderId, name, downloadsFolderId)
   val series = Series(seriesName, folderId)
-
+  val perPage = "9999"
   val seriesFolder = File(folderId, seriesName, 0)
 
   "addSeason" should "add season from folder to series" in {
@@ -42,12 +42,28 @@ class PutioScannerTest extends TestKit(ActorSystem("PutioScannerTest")) with Fla
   }
 
   "addSeries" should "return Series with all seasons scanned" in {
-    when(clientImpl.listFiles(seriesFolder.id, FileType.Folder, "5"))
+    when(clientImpl.listFiles(seriesFolder.id, FileType.Folder, "999"))
       .thenReturn(
-        FileListResponse(List(File(25, "Season 05", parentId), File(26, "Season 06", parentId)), File(parentId, seriesName, 0), None)
+        FileListResponse(List(File(25, "Season 05", downloadsFolderId), File(26, "Season 06", downloadsFolderId)), File(downloadsFolderId, seriesName, 0), None)
       )
 
-    scanner.addSeries(seriesFolder) shouldBe Series(seriesName, folderId, Map(("Season 05" -> "25"), ("Season 06" -> "26")))
+    scanner.addSeries(seriesFolder) shouldBe Series(seriesName, folderId, Map("Season 05" -> "25", "Season 06" -> "26"))
   }
 
+  "getDownloadedVideos" should "return downloaded videos" in {
+    val videoFileId = 123
+    val videoFileName = "video.mkv"
+    val videoFile = File(videoFileId, videoFileName, folderId)
+    val folderName = "folder"
+
+    // mock list download folder
+    when(clientImpl.listFiles(downloadsFolderId, FileType.Folder, "999"))
+      .thenReturn(FileListResponse(List(File(folderId, folderName, downloadsFolderId)), File(downloadsFolderId, "Downloads", 0), None))
+
+    // mock list folder
+    when(clientImpl.listFiles(folderId, FileType.Video, "999"))
+      .thenReturn(FileListResponse(List(videoFile), File(folderId, folderName, 0), None))
+
+    scanner.getDownloadedVideos(downloadsFolderId) shouldBe List(videoFile)
+  }
 }
