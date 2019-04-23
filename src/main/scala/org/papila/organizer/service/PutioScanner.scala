@@ -15,9 +15,9 @@ trait PutioScanner {
   def scan(folderId: FolderId)
           (implicit ec: ExecutionContext, system: ActorSystem, mat: ActorMaterializer) = {
 
-    client.listFiles(folderId, FileType.Folder, "999").files.foreach {
-      seriesFolder: File => addSeries(seriesFolder)
-    }
+    client.listFiles(folderId, FileType.Folder, "999").files.map {
+      seriesFolder: File => seriesFolder.name -> addSeries(seriesFolder)
+    }.toMap
   }
 
   def addSeries(folder: File)
@@ -32,6 +32,12 @@ trait PutioScanner {
                (implicit ec: ExecutionContext, system: ActorSystem, mat: ActorMaterializer): Series = {
     series.copy(seasons = series.seasons + (folder.name -> folder.id.toString))
   }
+
+  def getShows(folderId: FolderId)
+              (implicit ec: ExecutionContext, system: ActorSystem, mat: ActorMaterializer): Map[String, Series] =
+    client.listFiles(folderId, FileType.Folder, "999").files.map {seriesFolder =>
+      seriesFolder.name -> Series(seriesFolder.name, seriesFolder.id)
+    }.toMap
 
   def getDownloadedVideos(folderId: FolderId)
                   (implicit ec: ExecutionContext, system: ActorSystem, mat: ActorMaterializer): List[File] = {

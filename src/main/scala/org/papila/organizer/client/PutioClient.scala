@@ -45,7 +45,7 @@ trait PutioClient {
 
   def createFolder(name: String, parentId: FileId)
                   (implicit ec: ExecutionContext, system: ActorSystem, materializer: ActorMaterializer): CreateFolderResponse = {
-    println(s"Creating fodler $name on parent $parentId")
+    println(s"Creating folder $name on parent $parentId")
 
     val body = FormData(("name", name.toString), ("parent_id", parentId.toString))
 
