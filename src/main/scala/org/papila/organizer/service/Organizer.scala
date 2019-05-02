@@ -1,40 +1,18 @@
-package org.papila.organizer
+package org.papila.organizer.service
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import org.papila.organizer.client.PutioClient
-import org.papila.organizer.client.PutioClient._
-import org.papila.organizer.service.PutioScanner
+import org.papila.organizer.client.PutioClient.FolderId
+import org.papila.organizer.service.StringUtils.extractSeriesName
 
 import scala.concurrent.ExecutionContext
 
-object OrganizerApp extends App {
+class Organizer(scanner: PutioScanner, putioClient: PutioClient) {
 
-  import org.papila.organizer.service.StringUtils._
+  import Organizer._
 
-  implicit val system = ActorSystem("putio")
-  implicit val ec = ExecutionContext.global
-  implicit val materializer: ActorMaterializer = ActorMaterializer()
-
-  case class Series(name: String, folderId: FolderId, seasons: Map[String, String] = Map.empty)
-
-  val DownloadsFolderId = 619201714
-  val TvShowFolderId = 619877202
-
-  val downloadsPerPage = "100"
-  val videoPerPage = "100"
-
-  val putioClient = new PutioClient {
-    override lazy val token: AccessToken = "VTQWG4M3LK5I5LD7IL25"
-  }
-
-  val scanner = new PutioScanner {
-    override val client: PutioClient = putioClient
-  }
-
-  run()
-
-  def run() = {
+  def organize()(implicit ec: ExecutionContext, system: ActorSystem, mat: ActorMaterializer) = {
 
     var dict = scanner.scan(TvShowFolderId)
 
@@ -69,4 +47,16 @@ object OrganizerApp extends App {
 
       }
   }
+}
+
+object Organizer {
+
+  val DownloadsFolderId = 619201714
+  val TvShowFolderId = 619877202
+
+  val downloadsPerPage = "100"
+  val videoPerPage = "100"
+
+  case class Series(name: String, folderId: FolderId, seasons: Map[String, String] = Map.empty)
+
 }

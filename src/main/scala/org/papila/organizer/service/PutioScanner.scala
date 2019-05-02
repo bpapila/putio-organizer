@@ -2,9 +2,9 @@ package org.papila.organizer.service
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
-import org.papila.organizer.OrganizerApp.Series
 import org.papila.organizer.client.PutioClient
 import org.papila.organizer.client.PutioClient.{File, FileType, FolderId}
+import org.papila.organizer.service.Organizer.Series
 
 import scala.concurrent.ExecutionContext
 

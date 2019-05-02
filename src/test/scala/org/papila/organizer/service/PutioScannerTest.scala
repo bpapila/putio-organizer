@@ -3,12 +3,12 @@ package org.papila.organizer.service
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.testkit.TestKit
-import org.papila.organizer.OrganizerApp.Series
 import org.papila.organizer.client.PutioClient
 import org.papila.organizer.client.PutioClient.{File, FileListResponse, FileType}
 import org.scalatest.{BeforeAndAfterEach, FlatSpec, FlatSpecLike}
 import org.scalatest.Matchers._
 import org.mockito.Mockito._
+import org.papila.organizer.service.Organizer.Series
 
 import scala.concurrent.ExecutionContext
 import org.scalatest.mockito.MockitoSugar.mock
