@@ -9,6 +9,9 @@ import org.papila.organizer.client.PutioClient
 import org.papila.organizer.client.PutioClient.AccessToken
 import org.papila.organizer.service.{Organizer, PutioScanner}
 
+import scala.concurrent.Future
+import scala.util.{Failure, Success}
+
 object WebServer extends App {
 
   implicit val system = ActorSystem("PutioOrganizer")
@@ -27,7 +30,15 @@ object WebServer extends App {
 
   val callbackRoute = path("callback") {
     get {
-      organizer.organize()
+      val f = Future {
+        organizer.organize()
+      }
+
+      f onComplete {
+        case Failure(e) => println("Failed to organize: " + e.getMessage)
+        case Success(_) => println("Organized")
+      }
+
       complete(StatusCodes.Accepted)
     }
   }
