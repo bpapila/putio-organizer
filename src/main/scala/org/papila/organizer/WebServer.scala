@@ -36,14 +36,13 @@ object WebServer extends App {
 
   val port = sys.env("PORT")
 
-  val bindingFuture = Http().bindAndHandle(routes, "127.0.0.1", Integer.parseInt(port))
+  val bindingFuture = Http().bindAndHandle(routes, "0.0.0.0", Integer.parseInt(port))
 
-  println(s"Server online at http://localhost:$port/" +
-    s"")
+  println(s"Server online at http://localhost:$port/" +s"")
 
-  bindingFuture
-    .flatMap(_.unbind()) // trigger unbinding from the port
-    .onComplete(_ => system.terminate()) // and shutdown when done
+//  bindingFuture
+//    .flatMap(_.unbind()) // trigger unbinding from the port
+//    .onComplete(_ => system.terminate()) // and shutdown when done
 
 
 }
