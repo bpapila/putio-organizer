@@ -29,7 +29,7 @@ object WebServer extends App {
   val organizer = new Organizer(scanner, putioClient)
 
   val callbackRoute = path("callback") {
-    get {
+    post {
       val f = Future {
         organizer.organize()
       }
