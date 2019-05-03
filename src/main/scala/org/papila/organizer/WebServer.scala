@@ -34,9 +34,11 @@ object WebServer extends App {
 
   val routes = callbackRoute
 
-  val bindingFuture = Http().bindAndHandle(routes, "localhost", 8080)
+  val bindingFuture = Http().bindAndHandle(routes, "localhost", 80)
 
-  println(s"Server online at http://localhost:8080/\nPress RETURN to stop...")
+  sys.env("PORT")
+
+  println(s"Server online at http://localhost:80/\nPress RETURN to stop...")
 //
 //  bindingFuture
 //    .flatMap(_.unbind()) // trigger unbinding from the port
