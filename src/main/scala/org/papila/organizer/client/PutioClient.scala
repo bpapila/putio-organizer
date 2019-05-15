@@ -23,13 +23,20 @@ trait PutioClient {
   val url = Uri(s"https://api.put.io/v2/files/list")
   val tokenTuple = ("oauth_token", token)
 
-  def listFiles(f: FolderId, t: FileType, perPage: String)
+  def listFiles(f: FolderId, t: Option[FileType], perPage: String)
                (implicit ec: ExecutionContext, system: ActorSystem, materializer: ActorMaterializer): FileListResponse = {
 
-    val uri = url
-      .withQuery(Query(tokenTuple, ("file_type", t.toString), ("parent_id", f.toString), ("per_page", perPage)))
+//    val query = Query(tokenTuple, ("file_type", t.toString), ("parent_id", f.toString), ("per_page", perPage))
 
-    println(s"Listfiles: $uri")
+    val query = t match {
+      case Some(fileType) => Query(tokenTuple, ("file_type", fileType.toString), ("parent_id", f.toString), ("per_page", perPage))
+      case None =>  Query(tokenTuple, ("parent_id", f.toString), ("per_page", perPage))
+    }
+
+    val uri = url
+      .withQuery(query)
+
+//    println(s"Listfiles: $uri")
 
     val eventualRes = Http().singleRequest(HttpRequest(method = HttpMethods.GET, uri = uri))
 
@@ -102,7 +109,7 @@ object PutioClient {
   type FileName = String
   type AccessToken = String
 
-  case class File(id: FileId, name: FileName, parent_id: FileId)
+  case class File(id: FileId, name: FileName, parent_id: FileId, file_type: String = "")
 
   case class FileListResponse(
                                files: List[File],
@@ -113,7 +120,7 @@ object PutioClient {
   case class CreateFolderResponse(file: File)
 
   object PutioJsonSupport extends DefaultJsonProtocol with SprayJsonSupport {
-    implicit val fileFormat: JsonFormat[File] = jsonFormat3(File)
+    implicit val fileFormat: JsonFormat[File] = jsonFormat4(File)
     implicit val fileListResFormat: RootJsonFormat[FileListResponse] = jsonFormat3(FileListResponse)
     implicit val createFolderResFormat: RootJsonFormat[CreateFolderResponse] = jsonFormat1(CreateFolderResponse)
   }

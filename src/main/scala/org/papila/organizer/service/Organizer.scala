@@ -19,28 +19,28 @@ class Organizer(scanner: PutioScanner, putioClient: PutioClient) {
     scanner.getDownloadedVideos(DownloadsFolderId)
       .foreach{ file =>
 
-        val (seriesName, season, episode) = extractSeriesName(file.name)
-        println(seriesName, season, episode)
+        val episode = extractSeriesName(file.name)
+        println(episode.series, episode.season, episode)
 
         var series: Series = null
 
         // check series root folder there
-        dict get seriesName match {
+        dict get episode.series match {
           case None =>
-            val folderId = putioClient.createFolder(seriesName, TvShowFolderId).file.id
-            series = Series(seriesName, folderId)
-            dict = dict + (seriesName -> series)
+            val folderId = putioClient.createFolder(episode.series, TvShowFolderId).file.id
+            series = Series(episode.series, folderId)
+            dict = dict + (episode.series -> series)
           case Some(s)  => series = s
         }
 
-        val seasonFolderName = "Season " + season
-        dict(seriesName).seasons get seasonFolderName match {
+        val seasonFolderName = "Season " + episode.season
+        dict(episode.series).seasons get seasonFolderName match {
           case None =>
-            val folderId = putioClient.createFolder(s"Season $season", series.folderId).file.id
+            val folderId = putioClient.createFolder(s"Season ${episode.season}", series.folderId).file.id
             series = series.copy(seasons = series.seasons + (seasonFolderName -> folderId.toString))
-            dict = dict + (seriesName -> series)
+            dict = dict + (episode.series -> series)
           case Some(s) =>
-            series = series.copy(seasons = series.seasons + (season -> s))
+            series = series.copy(seasons = series.seasons + (episode.season -> s))
         }
 
         putioClient.moveFile(file.id, Integer.parseInt(series.seasons(seasonFolderName)))
@@ -58,5 +58,6 @@ object Organizer {
   val videoPerPage = "100"
 
   case class Series(name: String, folderId: FolderId, seasons: Map[String, String] = Map.empty)
+  case class Episode(series: String, season: String, episode: String)
 
 }

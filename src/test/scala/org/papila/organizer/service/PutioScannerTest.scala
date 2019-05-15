@@ -42,7 +42,7 @@ class PutioScannerTest extends TestKit(ActorSystem("PutioScannerTest")) with Fla
   }
 
   "addSeries" should "return Series with all seasons scanned" in {
-    when(clientImpl.listFiles(seriesFolder.id, FileType.Folder, "999"))
+    when(clientImpl.listFiles(seriesFolder.id, Some(FileType.Folder), "999"))
       .thenReturn(
         FileListResponse(List(File(25, "Season 05", downloadsFolderId), File(26, "Season 06", downloadsFolderId)), File(downloadsFolderId, seriesName, 0), None)
       )
@@ -57,11 +57,11 @@ class PutioScannerTest extends TestKit(ActorSystem("PutioScannerTest")) with Fla
     val folderName = "folder"
 
     // mock list download folder
-    when(clientImpl.listFiles(downloadsFolderId, FileType.Folder, "999"))
+    when(clientImpl.listFiles(downloadsFolderId, Some(FileType.Folder), "999"))
       .thenReturn(FileListResponse(List(File(folderId, folderName, downloadsFolderId)), File(downloadsFolderId, "Downloads", 0), None))
 
     // mock list folder
-    when(clientImpl.listFiles(folderId, FileType.Video, "999"))
+    when(clientImpl.listFiles(folderId, Some(FileType.Video), "999"))
       .thenReturn(FileListResponse(List(videoFile), File(folderId, folderName, 0), None))
 
     scanner.getDownloadedVideos(downloadsFolderId) shouldBe List(videoFile)
