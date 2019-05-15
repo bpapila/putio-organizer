@@ -1,10 +1,10 @@
 package org.papila.organizer.service
 
 import akka.NotUsed
-import akka.actor.{ActorRef, ActorSystem}
-import akka.stream.{ActorMaterializer, OverflowStrategy}
+import akka.actor.ActorSystem
 import akka.stream.scaladsl.{Flow, Source, SourceQueueWithComplete}
-import org.papila.organizer.GraphPutio.{putioClient, ref}
+import akka.stream.{ActorMaterializer, OverflowStrategy}
+import org.papila.organizer.GraphPutio.putioClient
 import org.papila.organizer.client.PutioClient.File
 import org.papila.organizer.service.Organizer.Episode
 import org.papila.organizer.service.StringUtils.extractSeriesName

@@ -31,7 +31,7 @@ class PutioOrganizerSpec extends FlatSpec {
 
     val (queue, f) = source.take(2).toMat(Sink.seq[File])(Keep.both).run()
     queue.offer(folder1)
-    queue.offer(folder1)
+    queue.offer(folder2)
 
     Await.result(f, 3 seconds) shouldBe Seq(folder1, folder2)
   }

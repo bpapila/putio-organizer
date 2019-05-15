@@ -17,13 +17,14 @@ object GraphPutio extends App with PutioOrganizer {
     override lazy val token: AccessToken = "VTQWG4M3LK5I5LD7IL25"
   }
 
-  val (ref, source) = filesSource(10)
+  val (queue, source) = filesSource(10)
+    .preMaterialize()
 
   val sinkPrint = Sink.foreach(println)
 
   source
     .take(10)
-    .via(fetchFolderFilesFlow)
+    .via(fetchFolderFilesFlow(queue))
     .via(videoFileFilterFlow)
     .via(fileNameExtractorFlow())
     .log("EXTRACTOR", x => println(s"EXTRACTOR:     $x"))
@@ -33,8 +34,5 @@ object GraphPutio extends App with PutioOrganizer {
   putioClient
     .listFiles(Organizer.TvShowFolderId, Some(FileType.Folder), "2")
     .files
-    .foreach(f => {
-      ref ! f
-    })
-
+    .foreach(queue.offer)
 }
