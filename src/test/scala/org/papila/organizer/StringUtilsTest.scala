@@ -13,7 +13,6 @@ class StringUtilsTest extends FlatSpec {
     extractSeriesName("Its_Always_Sunny_in_Philadelphia_S13E10.1080p.WEB.H264-METCON.mkv") shouldBe Episode("Its Always Sunny In Philadelphia","13", "10")
     extractSeriesName("better.things.s03e07.1080p.web.h264-memento.mkv") shouldBe Episode("Better Things","03", "07")
     extractSeriesName("The Expanse - S01 E01 - Dulcinea (720p HDTV).mp4") shouldBe Episode("The Expanse","01", "01")
-
   }
 
   "formatSeriesName" should "format series name" in {

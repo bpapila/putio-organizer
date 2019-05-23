@@ -36,7 +36,7 @@ trait PutioClient {
     val uri = url
       .withQuery(query)
 
-//    println(s"Listfiles: $uri")
+    println(s"Listfiles: $uri")
 
     val eventualRes = Http().singleRequest(HttpRequest(method = HttpMethods.GET, uri = uri))
 
@@ -76,12 +76,7 @@ trait PutioClient {
   def moveFile(f: FileId, target: FileId)
               (implicit ec: ExecutionContext, system: ActorSystem, materializer: ActorMaterializer): Unit = {
     println(s"Moving file $f to $target")
-
-    val uri = Uri("https://api.put.io/v2/files/move")
-      .withQuery(Query(tokenTuple))
-
-    println("Moving file uri: " + uri)
-
+    val uri = Uri("https://api.put.io/v2/files/move").withQuery(Query(tokenTuple))
     val body = FormData(("file_ids", f.toString), ("parent_id", target.toString))
 
     Marshal(body).to[RequestEntity].map { entity =>
@@ -91,7 +86,6 @@ trait PutioClient {
         case x => throw new Exception(s"Move file failed: ${x.status} ${x.httpMessage}")
       }
     }
-
     ()
   }
 }
