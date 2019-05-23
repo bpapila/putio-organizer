@@ -88,5 +88,16 @@ class PutioOrganizerSpec extends FlatSpec with BeforeAndAfter{
     seq shouldBe Seq(folder1, folder2, file1)
   }
 
+  "videoFileFilter" should "filter only video files" in {
+    val flowUnderTest = putioOrganizer.videoFileFilter
+
+    val f = Source[File](List(folder1, folder2, file1))
+      .via(flowUnderTest)
+      .toMat(Sink.seq)(Keep.right)
+      .run()
+
+    val seq = Await.result(f, 3 seconds)
+    seq shouldBe Seq(file1)
+  }
 
 }
