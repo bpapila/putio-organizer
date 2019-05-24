@@ -2,14 +2,15 @@ package org.papila.organizer
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.Sink
+import akka.stream.scaladsl.{Keep, Sink}
 import org.papila.organizer.client.PutioClient
-import org.papila.organizer.client.PutioClient.{AccessToken, FileType}
-import org.papila.organizer.service.{Organizer, PutioOrganizer}
-import scala.concurrent.duration._
-import scala.concurrent.Await
+import org.papila.organizer.client.PutioClient.AccessToken
+import org.papila.organizer.service.{Organizer, PutioOrganizer, PutioService}
 
-object GraphPutio extends App {
+import scala.concurrent.Await
+import scala.concurrent.duration._
+
+object GraphPutio extends App with PutioOrganizer {
 
   implicit val system = ActorSystem("TestSystem")
   implicit val materializer = ActorMaterializer()
@@ -19,30 +20,15 @@ object GraphPutio extends App {
     override lazy val token: AccessToken = "VTQWG4M3LK5I5LD7IL25"
   }
 
-//  val (queue, source) = filesSource(10)
-//    .preMaterialize()
-//
-//  val sinkPrint = Sink.foreach(println)
-//
-//  //  source
-//  //    .take(10)
-//  //    .via(fetchFolderFilesFlow(queue))
-//  //    .via(videoFileFilter)
-//  //    .via(fileNameExtractor
-//  //    .log("EXTRACTOR", x => println(s"EXTRACTOR:     $x"))
-//  //    .to(Sink.ignore)
-//  //    .run()
-//
-//  val (queue, source) = videoFinderRecursive()
-//
-//  source.to(sinkPrint).run()
-//  putioClient
-//    .listFiles(Organizer.TvShowFolderId, None, "2")
-//    .files
-//    .foreach(file => {
-//      val a = Await.result(queue.offer(file), 5 seconds)
-//      println(s"OfferResult: $a")
-//      println(file)
-//      println()
-//    })
+  val putioService = new PutioService(putioClient)
+
+  val (queue, src) = videoFinderRecursive(putioService)
+  val g = src.toMat(Sink.ignore)(Keep.right).run()
+
+  putioClient
+    .listFiles(Organizer.TvShowFolderId, None, "2")
+    .files
+    .foreach(queue.offer)
+
+  Await.result(g, 180 seconds)
 }
