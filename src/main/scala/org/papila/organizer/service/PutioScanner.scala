@@ -43,9 +43,7 @@ trait PutioScanner {
                   (implicit ec: ExecutionContext, system: ActorSystem, mat: ActorMaterializer): List[File] = {
     client.listFiles(folderId, Some(FileType.Folder), "999").files.flatMap {
       downloadedFolder: File =>
-        client.listFiles(downloadedFolder.id, Some(FileType.Video), "999").files.map {
-          downloadedVideo: File => downloadedVideo
-        }
+        client.listFiles(downloadedFolder.id, Some(FileType.Video), "999").files
     }
   }
 }

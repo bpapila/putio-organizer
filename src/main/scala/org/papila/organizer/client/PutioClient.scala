@@ -26,17 +26,12 @@ trait PutioClient {
   def listFiles(f: FolderId, t: Option[FileType], perPage: String)
                (implicit ec: ExecutionContext, system: ActorSystem, materializer: ActorMaterializer): FileListResponse = {
 
-//    val query = Query(tokenTuple, ("file_type", t.toString), ("parent_id", f.toString), ("per_page", perPage))
-
     val query = t match {
       case Some(fileType) => Query(tokenTuple, ("file_type", fileType.toString), ("parent_id", f.toString), ("per_page", perPage))
       case None =>  Query(tokenTuple, ("parent_id", f.toString), ("per_page", perPage))
     }
 
-    val uri = url
-      .withQuery(query)
-
-    println(s"Listfiles: $uri")
+    val uri = url.withQuery(query)
 
     val eventualRes = Http().singleRequest(HttpRequest(method = HttpMethods.GET, uri = uri))
 

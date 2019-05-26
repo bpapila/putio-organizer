@@ -24,7 +24,7 @@ class PutioOrganizerSpec extends FlatSpec with BeforeAndAfter{
 
   val putioClient = mock[PutioClient]
   val queue = mock[SourceQueueWithComplete[File]]
-  val putIoService = mock[PutioService]
+  val putIoService = mock[PutIoService]
 
   var putioOrganizer = new PutioOrganizer {
     override implicit val system: ActorSystem = systemImpl
