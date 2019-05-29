@@ -8,18 +8,18 @@ import akka.http.scaladsl.model.Uri.Query
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.unmarshalling.Unmarshal
 import akka.stream.ActorMaterializer
+import org.papila.organizer.client.PutioClient.AccessToken
 import org.papila.organizer.client.PutioClient.FileType.FileType
 import spray.json.{DefaultJsonProtocol, JsonFormat, RootJsonFormat}
 
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext}
 
-trait PutioClient {
+class PutioClient(val token: AccessToken) {
 
   import PutioClient._
   import PutioJsonSupport._
 
-  val token: AccessToken
   val url = Uri(s"https://api.put.io/v2/files/list")
   val tokenTuple = ("oauth_token", token)
 
@@ -69,7 +69,7 @@ trait PutioClient {
   }
 
   def moveFile(f: FileId, target: FileId)
-              (implicit ec: ExecutionContext, system: ActorSystem, materializer: ActorMaterializer): Unit = {
+              (implicit ec: ExecutionContext, system: ActorSystem, materializer: ActorMaterializer): File = {
     println(s"Moving file $f to $target")
     val uri = Uri("https://api.put.io/v2/files/move").withQuery(Query(tokenTuple))
     val body = FormData(("file_ids", f.toString), ("parent_id", target.toString))
@@ -86,8 +86,6 @@ trait PutioClient {
 }
 
 object PutioClient {
-  type FolderId = Int
-
   object FileType extends Enumeration {
     type FileType = Value
     val Folder = Value("FOLDER")
@@ -95,6 +93,7 @@ object PutioClient {
   }
 
   type FileId = Int
+  type FolderId = Int
   type FileName = String
   type AccessToken = String
 

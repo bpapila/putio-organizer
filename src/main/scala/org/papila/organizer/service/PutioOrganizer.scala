@@ -4,8 +4,8 @@ import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.stream.scaladsl.{Flow, Source, SourceQueueWithComplete}
 import akka.stream.{ActorMaterializer, OverflowStrategy}
-import org.papila.organizer.client.PutioClient.File
-import org.papila.organizer.service.Organizer.Episode
+import org.papila.organizer.client.PutioClient.{File, FileName}
+import org.papila.organizer.service.Organizer._
 import org.papila.organizer.service.StringUtils.extractSeriesName
 
 import scala.concurrent.ExecutionContext
@@ -39,7 +39,7 @@ trait PutioOrganizer {
   def videoFinderRecursive(
                             putioService: PutIoService,
                             bufferSize: Int = 100
-                          ): (SourceQueueWithComplete[File], Source[(Episode, File), NotUsed]) = {
+                          ): (SourceQueueWithComplete[File], Source[EpisodeWithFile, NotUsed]) = {
 
     filesSource(bufferSize).preMaterialize() match {
       case (queue, source) =>
@@ -54,4 +54,22 @@ trait PutioOrganizer {
         )
     }
   }
+
+  def folderCreatorFlow(dict: Map[FileName, Organizer.Series]): Flow[EpisodeWithFile, List[PutIoTask], NotUsed] =
+    Flow[(Episode, File)].statefulMapConcat[EpisodeWithFile] { () =>
+      var dictMutable = dict
+
+      episodeWithFile =>
+        val episode = episodeWithFile._1
+        dictMutable get episode.series match {
+          case None => // no series folder
+            // create folder
+            val folderId = CreateFolderTask(episode.series, LibraryFolder)
+            series = Series(episode.series, folderId)
+            dict = dict + (episode.series -> series)
+          case Some(s)  => series = s
+        }
+    }
+
+
 }

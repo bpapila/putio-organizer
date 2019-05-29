@@ -8,9 +8,7 @@ import org.papila.organizer.service.Organizer.Series
 
 import scala.concurrent.ExecutionContext
 
-trait PutioScanner {
-
-  val client: PutioClient
+class PutioScanner(val client: PutioClient) {
 
   def scan(folderId: FolderId)
           (implicit ec: ExecutionContext, system: ActorSystem, mat: ActorMaterializer) = {
