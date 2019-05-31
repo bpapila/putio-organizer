@@ -9,6 +9,7 @@ import org.papila.organizer.service.Organizer._
 import org.papila.organizer.service.StringUtils.extractSeriesName
 
 import scala.concurrent.ExecutionContext
+import scala.util.Success
 
 trait PutioOrganizer {
 
@@ -55,21 +56,41 @@ trait PutioOrganizer {
     }
   }
 
-  def folderCreatorFlow(dict: Map[FileName, Organizer.Series]): Flow[EpisodeWithFile, List[PutIoTask], NotUsed] =
-    Flow[(Episode, File)].statefulMapConcat[EpisodeWithFile] { () =>
-      var dictMutable = dict
+  def organizeFoldersFlow(dict: Map[FileName, Organizer.Series]): Flow[EpisodeWithFile, FolderContents, NotUsed] =
+//    Flow[EpisodeWithFile].fold(Map.empty[String, Folder])()
+  ???
 
-      episodeWithFile =>
-        val episode = episodeWithFile._1
-        dictMutable get episode.series match {
-          case None => // no series folder
-            // create folder
-            val folderId = CreateFolderTask(episode.series, LibraryFolder)
-            series = Series(episode.series, folderId)
-            dict = dict + (episode.series -> series)
-          case Some(s)  => series = s
-        }
+
+  def foo(fs: Map[String, Folder], ef: EpisodeWithFile): Map[String, Folder] = {
+    val fsWithSeries = create(fs, ef._1.series)
+    val fsWithSeason = create(fsWithSeries ++ fsWithSeries(ef._1.series).items, ef._1.season)
+    println(a)
+    a
+  }
+
+  def create(fs: FolderContents, key: String): Map[String, Folder] = {
+    fs get key match {
+      case None => fs + (key -> Folder(key))
+      case Some(_) => fs
     }
+  }
+
+
+  //    Flow[EpisodeWithFile].statefulMapConcat { () =>
+  //      var fileSystem = Map.empty[String, Folder]
+  //      ef => {
+  //        val episode = ef._1
+  //        fileSystem.get(episode.series) match {
+  //          case None => fileSystem += (episode.series -> Folder(episode.series))
+  //          case Some(s) =>
+  //        }
+  //
+  //
+  //      }
+
+  //        fileSystem
+  //      List.empty
+  //    }
 
 
 }

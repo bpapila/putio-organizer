@@ -4,7 +4,6 @@ import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import org.papila.organizer.client.PutioClient
 import org.papila.organizer.client.PutioClient.{File, FileId, FolderId}
-import org.papila.organizer.service.Organizer.Episode
 import org.papila.organizer.service.StringUtils.extractSeriesName
 
 import scala.concurrent.ExecutionContext
@@ -58,11 +57,12 @@ object Organizer {
   val downloadsPerPage = "100"
   val videoPerPage = "100"
 
-  case class Series(name: String, folderId: FolderId, seasons: Map[String, String] = Map.empty, localIdentifier: String = "")
-
-  case class Episode(series: String, season: String, episode: String)
-
+  type FolderContents = Map[String, Folder]
   type EpisodeWithFile = (Episode, File)
+
+  case class Series(name: String, folderId: FolderId, seasons: Map[String, String] = Map.empty, localIdentifier: String = "")
+  case class Episode(series: String, season: String, episode: String)
+  case class Folder(name: String, items: FolderContents = Map.empty, parentId: Option[Int] = None, id: Option[Int] = None)
 
   sealed trait PutIoTask {
     def run(client: PutioClient)(implicit ec: ExecutionContext, system: ActorSystem, mat: ActorMaterializer): File

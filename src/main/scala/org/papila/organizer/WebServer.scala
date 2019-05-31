@@ -18,14 +18,9 @@ object WebServer extends App {
   implicit val mat = ActorMaterializer()
   implicit val ec = system.dispatcher
 
-  val putioClient = new PutioClient {
-    override lazy val token: AccessToken = "VTQWG4M3LK5I5LD7IL25"
-  }
+  val putioClient = new PutioClient("VTQWG4M3LK5I5LD7IL25")
 
-  val scanner = new PutioScanner {
-    override val client: PutioClient = putioClient
-  }
-
+  val scanner = new PutioScanner(putioClient)
   val organizer = new Organizer(scanner, putioClient)
 
   val callbackRoute = path("callback") {

@@ -28,7 +28,7 @@ class PutioClient(val token: AccessToken) {
 
     val query = t match {
       case Some(fileType) => Query(tokenTuple, ("file_type", fileType.toString), ("parent_id", f.toString), ("per_page", perPage))
-      case None =>  Query(tokenTuple, ("parent_id", f.toString), ("per_page", perPage))
+      case None => Query(tokenTuple, ("parent_id", f.toString), ("per_page", perPage))
     }
 
     val uri = url.withQuery(query)
@@ -58,10 +58,10 @@ class PutioClient(val token: AccessToken) {
       val eventualRes = Http().singleRequest(HttpRequest(method = HttpMethods.POST, uri = uri, entity = entity))
 
       for {res <- eventualRes
-                    createFolderRes <- res match {
-                      case HttpResponse(StatusCodes.OK, _, e, _) => Unmarshal(e).to[CreateFolderResponse]
-                      case x => throw new Exception(s"Create folder failed: ${x.status} ${x.httpMessage}")
-                    }
+           createFolderRes <- res match {
+             case HttpResponse(StatusCodes.OK, _, e, _) => Unmarshal(e).to[CreateFolderResponse]
+             case x => throw new Exception(s"Create folder failed: ${x.status} ${x.httpMessage}")
+           }
       } yield createFolderRes
     }
 
@@ -74,18 +74,20 @@ class PutioClient(val token: AccessToken) {
     val uri = Uri("https://api.put.io/v2/files/move").withQuery(Query(tokenTuple))
     val body = FormData(("file_ids", f.toString), ("parent_id", target.toString))
 
-    Marshal(body).to[RequestEntity].map { entity =>
-      val eventualRes = Http().singleRequest(HttpRequest(method = HttpMethods.POST, uri = uri, entity = entity))
-      Await.result(eventualRes, 10 seconds) match {
-        case HttpResponse(StatusCodes.OK, _, e, _) =>
-        case x => throw new Exception(s"Move file failed: ${x.status} ${x.httpMessage}")
+    Await.result(
+      Marshal(body).to[RequestEntity].map { entity =>
+        val eventualRes = Http().singleRequest(HttpRequest(method = HttpMethods.POST, uri = uri, entity = entity))
+        Await.result(eventualRes, 10 seconds) match {
+          case HttpResponse(StatusCodes.OK, _, e, _) => File(1, "", 1) // TODO: dummy data to compile
+          case x => throw new Exception(s"Move file failed: ${x.status} ${x.httpMessage}")
+        }
       }
-    }
-    ()
+      , 5 seconds)
   }
 }
 
 object PutioClient {
+
   object FileType extends Enumeration {
     type FileType = Value
     val Folder = Value("FOLDER")

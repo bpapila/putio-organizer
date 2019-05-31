@@ -10,6 +10,7 @@ import org.papila.organizer.client.PutioClient
 import org.papila.organizer.client.PutioClient.{File, FileType}
 import org.scalatest.{BeforeAndAfter, FlatSpec}
 import org.mockito.Mockito.{never, reset, times, verify}
+import org.papila.organizer.service.Organizer.{Episode, EpisodeWithFile, Folder, FolderContents}
 
 import scala.concurrent.duration._
 import org.scalatest.Matchers._
@@ -99,5 +100,34 @@ class PutioOrganizerSpec extends FlatSpec with BeforeAndAfter{
     val seq = Await.result(f, 3 seconds)
     seq shouldBe Seq(file1)
   }
+
+  "create" should "create key under FolderContents" in {
+    val fc: FolderContents = Map.empty[String, Folder]
+    GraphPutio.create(fc, "test")("test") shouldBe Folder("test")
+  }
+
+  "create" should "not duplicate item when key already exist" in {
+    val fc: FolderContents = Map.empty[String, Folder]
+    fc + ("test" -> Folder("test"))
+
+    val fcUpdated = GraphPutio.create(fc, "test")
+    fcUpdated.size shouldBe 1
+    fcUpdated("test") shouldBe Folder("test")
+  }
+
+  "foo" should "create subfolder" in {
+    val fc: FolderContents = Map.empty[String, Folder]
+
+    val episode = Episode("Six Feet Under", "2", "1")
+    val episodeWithFile: EpisodeWithFile = (episode, mock[File])
+
+    val updatedFc = GraphPutio.foo(fc, episodeWithFile)
+
+    updatedFc(episode.series) shouldBe
+      Folder(episode.series, Map(episode.season -> Folder(episode.season)))
+
+
+  }
+
 
 }

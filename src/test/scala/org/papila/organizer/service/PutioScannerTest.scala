@@ -20,9 +20,7 @@ class PutioScannerTest extends TestKit(ActorSystem("PutioScannerTest")) with Fla
 
   val clientImpl = mock[PutioClient]
 
-  val scanner = new PutioScanner {
-    override val client: PutioClient = clientImpl
-  }
+  val scanner = new PutioScanner(clientImpl)
 
   override def beforeEach() {
     reset(clientImpl)
