@@ -17,7 +17,7 @@ import org.scalatest.Matchers._
 
 import scala.concurrent.{Await, ExecutionContext, Future}
 
-class PutioOrganizerSpec extends FlatSpec with BeforeAndAfter{
+class PutioOrganizerSpec extends FlatSpec with BeforeAndAfter {
 
   implicit val systemImpl = ActorSystem("TestSystem")
   implicit val materializerImpl = ActorMaterializer()
@@ -101,31 +101,64 @@ class PutioOrganizerSpec extends FlatSpec with BeforeAndAfter{
     seq shouldBe Seq(file1)
   }
 
-  "create" should "create key under FolderContents" in {
+  "createInFolder" should "create key under FolderContents" in {
     val fc: FolderContents = Map.empty[String, Folder]
-    GraphPutio.create(fc, "test")("test") shouldBe Folder("test")
+    GraphPutio.createInFolder(fc, "test")("test") shouldBe Folder("test")
   }
 
-  "create" should "not duplicate item when key already exist" in {
+  "createInFolder" should "not duplicate item when key already exist" in {
     val fc: FolderContents = Map.empty[String, Folder]
     fc + ("test" -> Folder("test"))
 
-    val fcUpdated = GraphPutio.create(fc, "test")
+    val fcUpdated = GraphPutio.createInFolder(fc, "test")
     fcUpdated.size shouldBe 1
     fcUpdated("test") shouldBe Folder("test")
   }
 
-  "foo" should "create subfolder" in {
+  "organizeSeriesIntoFolder" should "create subfolder" in {
     val fc: FolderContents = Map.empty[String, Folder]
 
     val episode = Episode("Six Feet Under", "2", "1")
     val episodeWithFile: EpisodeWithFile = (episode, mock[File])
 
-    val updatedFc = GraphPutio.foo(fc, episodeWithFile)
+    val updatedFc = GraphPutio.organizeSeriesIntoFolder(fc, episodeWithFile)
 
     updatedFc(episode.series) shouldBe
       Folder(episode.series, Map(episode.season -> Folder(episode.season)))
+  }
 
+  "organizeFoldersFlow" should "organize files into folder structure" in {
+
+    val testList = List(
+      (Episode("Six Feet Under", "02", "01"), mock[File]),
+      (Episode("Six Feet Under", "02", "02"), mock[File]),
+      (Episode("Six Feet Under", "03", "09"), mock[File]),
+      (Episode("Sopranos", "04", "01"), mock[File])
+    )
+
+    val expectedFolder = Map(
+      "Six Feet Under" -> Folder(
+        "Six Feet Under",
+        Map(
+          "02" -> Folder("02"),
+          "03" -> Folder("03")
+        )
+      ),
+      "Sopranos" -> Folder(
+        "Sopranos",
+        Map(
+          "04" -> Folder("04")
+        )
+      )
+    )
+
+    val res = Source(testList)
+      .via(GraphPutio.organizeFoldersFlow())
+      .toMat(Sink.head)(Keep.right)
+      .run()
+
+    val result = Await.result(res, 3 seconds)
+    result shouldBe expectedFolder
 
   }
 
