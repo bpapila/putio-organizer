@@ -4,12 +4,11 @@ import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.stream.scaladsl.{Flow, Source, SourceQueueWithComplete}
 import akka.stream.{ActorMaterializer, OverflowStrategy}
-import org.papila.organizer.client.PutioClient.{File, FileName}
+import org.papila.organizer.client.PutioClient.File
 import org.papila.organizer.service.Organizer._
 import org.papila.organizer.service.StringUtils.extractSeriesName
 
 import scala.concurrent.ExecutionContext
-import scala.util.Success
 
 trait PutioOrganizer {
 
@@ -59,8 +58,6 @@ trait PutioOrganizer {
   def organizeFoldersFlow(): Flow[EpisodeWithFile, FolderContents, NotUsed] =
     Flow[EpisodeWithFile].fold(Map.empty[String, Folder])(organizeSeriesIntoFolder)
 
-
-
   def organizeSeriesIntoFolder(fs: FolderContents, ef: EpisodeWithFile): Map[String, Folder] = {
     val episode = ef._1
     val fsWithSeries = createInFolder(fs, episode.series)
@@ -69,7 +66,6 @@ trait PutioOrganizer {
     val seasons = seriesFolder.items ++ createInFolder(seriesFolder.items, episode.season)
 
     fsWithSeries + (episode.series -> fsWithSeries(episode.series).copy(items = seasons))
-
   }
 
   def createInFolder(fs: FolderContents, key: String): FolderContents = {
