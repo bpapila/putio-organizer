@@ -3,7 +3,7 @@ package org.papila.organizer.service
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import org.papila.organizer.client.PutioClient
-import org.papila.organizer.client.PutioClient.{File, FileType, FolderId}
+import org.papila.organizer.client.PutioClient.{PutIoFile, FileType, FolderId}
 import org.papila.organizer.service.Organizer.Series
 
 import scala.concurrent.ExecutionContext
@@ -14,19 +14,19 @@ class PutioScanner(val client: PutioClient) {
           (implicit ec: ExecutionContext, system: ActorSystem, mat: ActorMaterializer) = {
 
     client.listFiles(folderId, Some(FileType.Folder), "999").files.map {
-      seriesFolder: File => seriesFolder.name -> addSeries(seriesFolder)
+      seriesFolder: PutIoFile => seriesFolder.name -> addSeries(seriesFolder)
     }.toMap
   }
 
-  def addSeries(folder: File)
+  def addSeries(folder: PutIoFile)
                (implicit ec: ExecutionContext, system: ActorSystem, mat: ActorMaterializer): Series = {
     client.listFiles(folder.id, Some(FileType.Folder), "999").files
       .foldRight(Series(folder.name, folder.id)){
-        case (f: File, s: Series) => addSeason(f, s)
+        case (f: PutIoFile, s: Series) => addSeason(f, s)
       }
   }
 
-  def addSeason(folder: File, series: Series)
+  def addSeason(folder: PutIoFile, series: Series)
                (implicit ec: ExecutionContext, system: ActorSystem, mat: ActorMaterializer): Series = {
     series.copy(seasons = series.seasons + (folder.name -> folder.id.toString))
   }
@@ -38,9 +38,9 @@ class PutioScanner(val client: PutioClient) {
     }.toMap
 
   def getDownloadedVideos(folderId: FolderId)
-                  (implicit ec: ExecutionContext, system: ActorSystem, mat: ActorMaterializer): List[File] = {
+                  (implicit ec: ExecutionContext, system: ActorSystem, mat: ActorMaterializer): List[PutIoFile] = {
     client.listFiles(folderId, Some(FileType.Folder), "999").files.flatMap {
-      downloadedFolder: File =>
+      downloadedFolder: PutIoFile =>
         client.listFiles(downloadedFolder.id, Some(FileType.Video), "999").files
     }
   }

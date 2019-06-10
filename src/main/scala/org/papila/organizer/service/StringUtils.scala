@@ -1,19 +1,20 @@
 package org.papila.organizer.service
 
-import org.papila.organizer.client.PutioClient.FileName
+import org.papila.organizer.client.PutioClient.{FileName, PutIoFile}
 import org.papila.organizer.service.Organizer.Episode
 
 object StringUtils {
 
-  def extractSeriesName(fileName: FileName): Episode = {
+  def fileToEpisode(file: PutIoFile): Episode = {
     val pattern = """(?i)(.+)S(\d{2}) ?E(\d{2}).*""".r
 
-    val pattern(series, season, episode) = fileName
+    val pattern(series, season, episode) = file.name
 
     return Episode(
       formatSeriesName(series),
       season,
-      episode
+      episode,
+      file
     )
   }
 

@@ -69,7 +69,7 @@ class PutioClient(val token: AccessToken) {
   }
 
   def moveFile(f: FileId, target: FileId)
-              (implicit ec: ExecutionContext, system: ActorSystem, materializer: ActorMaterializer): File = {
+              (implicit ec: ExecutionContext, system: ActorSystem, materializer: ActorMaterializer): PutIoFile = {
     println(s"Moving file $f to $target")
     val uri = Uri("https://api.put.io/v2/files/move").withQuery(Query(tokenTuple))
     val body = FormData(("file_ids", f.toString), ("parent_id", target.toString))
@@ -78,7 +78,7 @@ class PutioClient(val token: AccessToken) {
       Marshal(body).to[RequestEntity].map { entity =>
         val eventualRes = Http().singleRequest(HttpRequest(method = HttpMethods.POST, uri = uri, entity = entity))
         Await.result(eventualRes, 10 seconds) match {
-          case HttpResponse(StatusCodes.OK, _, e, _) => File(1, "", 1) // TODO: dummy data to compile
+          case HttpResponse(StatusCodes.OK, _, e, _) => PutIoFile(1, "", 1) // TODO: dummy data to compile
           case x => throw new Exception(s"Move file failed: ${x.status} ${x.httpMessage}")
         }
       }
@@ -99,18 +99,18 @@ object PutioClient {
   type FileName = String
   type AccessToken = String
 
-  case class File(id: FileId, name: FileName, parent_id: FileId, file_type: String = "")
+  case class PutIoFile(id: FileId, name: FileName, parent_id: FileId, file_type: String = "")
 
   case class FileListResponse(
-                               files: List[File],
-                               parent: File,
+                               files: List[PutIoFile],
+                               parent: PutIoFile,
                                cursor: Option[String]
                              )
 
-  case class CreateFolderResponse(file: File)
+  case class CreateFolderResponse(file: PutIoFile)
 
   object PutioJsonSupport extends DefaultJsonProtocol with SprayJsonSupport {
-    implicit val fileFormat: JsonFormat[File] = jsonFormat4(File)
+    implicit val fileFormat: JsonFormat[PutIoFile] = jsonFormat4(PutIoFile)
     implicit val fileListResFormat: RootJsonFormat[FileListResponse] = jsonFormat3(FileListResponse)
     implicit val createFolderResFormat: RootJsonFormat[CreateFolderResponse] = jsonFormat1(CreateFolderResponse)
   }

@@ -4,9 +4,9 @@ import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.stream.scaladsl.{Flow, Source, SourceQueueWithComplete}
 import akka.stream.{ActorMaterializer, OverflowStrategy}
-import org.papila.organizer.client.PutioClient.File
+import org.papila.organizer.client.PutioClient.PutIoFile
 import org.papila.organizer.service.Organizer._
-import org.papila.organizer.service.StringUtils.extractSeriesName
+import org.papila.organizer.service.StringUtils.fileToEpisode
 
 import scala.concurrent.ExecutionContext
 
@@ -16,30 +16,28 @@ trait PutioOrganizer {
   implicit val materializer: ActorMaterializer
   implicit val ec: ExecutionContext
 
-  def filesSource(bufferSize: Int = 100): Source[File, SourceQueueWithComplete[File]] =
-    Source.queue[File](100, OverflowStrategy.dropBuffer)
+  def filesSource(bufferSize: Int = 100): Source[PutIoFile, SourceQueueWithComplete[PutIoFile]] =
+    Source.queue[PutIoFile](100, OverflowStrategy.dropBuffer)
 
-  def fetchFolderFilesRecFlow(queue: SourceQueueWithComplete[File], putIoService: PutIoService) = Flow[File].collect {
-    case folder@File(folderId, _, _, "FOLDER") =>
+  def fetchFolderFilesRecFlow(queue: SourceQueueWithComplete[PutIoFile], putIoService: PutIoService) = Flow[PutIoFile].collect {
+    case folder@PutIoFile(folderId, _, _, "FOLDER") =>
       putIoService.offerFilesUnderDir(folderId, queue)
       folder
-    case f@File(_, _, _, "VIDEO") =>
+    case f@PutIoFile(_, _, _, "VIDEO") =>
       f
   }
 
-  def videoFileFilter = Flow[File].collect {
-    case f@File(_, _, _, "VIDEO") => f
+  def videoFileFilter = Flow[PutIoFile].collect {
+    case f@PutIoFile(_, _, _, "VIDEO") => f
   }
 
-  def fileNameExtractor: Flow[File, (Episode, File), NotUsed] =
-    Flow[File].map { f =>
-      (extractSeriesName(f.name), f)
-    }
+  def fileNameExtractor: Flow[PutIoFile, Episode, NotUsed] =
+    Flow[PutIoFile].map(f => fileToEpisode(f))
 
   def videoFinderRecursive(
                             putioService: PutIoService,
                             bufferSize: Int = 100
-                          ): (SourceQueueWithComplete[File], Source[EpisodeWithFile, NotUsed]) = {
+                          ): (SourceQueueWithComplete[PutIoFile], Source[Episode, NotUsed]) = {
 
     filesSource(bufferSize).preMaterialize() match {
       case (queue, source) =>
@@ -55,23 +53,30 @@ trait PutioOrganizer {
     }
   }
 
-  def organizeFoldersFlow(): Flow[EpisodeWithFile, FolderContents, NotUsed] =
-    Flow[EpisodeWithFile].fold(Map.empty[String, Folder])(organizeSeriesIntoFolder)
+  def organizeFoldersFlow(): Flow[Episode, FilesMap, NotUsed] =
+    Flow[Episode].fold(Map.empty[String, File])(organizeSeriesIntoFolder)
 
-  def organizeSeriesIntoFolder(fs: FolderContents, ef: EpisodeWithFile): Map[String, Folder] = {
-    val episode = ef._1
-    val fsWithSeries = createInFolder(fs, episode.series)
+  def organizeSeriesIntoFolder(fs: FilesMap, e: Episode): Map[String, File] = {
 
-    val seriesFolder = fsWithSeries(episode.series)
-    val seasons = seriesFolder.items ++ createInFolder(seriesFolder.items, episode.season)
+    val fsWithSeries = createFileEntry(fs, e.series)
 
-    fsWithSeries + (episode.series -> fsWithSeries(episode.series).copy(items = seasons))
+    val seriesFolder = fsWithSeries(e.series)
+    val seasons = seriesFolder.items ++ createFileEntry(seriesFolder.items, e.season)
+
+    fsWithSeries + (
+      e.series -> fsWithSeries(e.series).copy(items = seasons)
+      )
   }
 
-  def createInFolder(fs: FolderContents, key: String): FolderContents = {
+  def createFileEntry(fs: FilesMap, key: String): FilesMap = {
     fs get key match {
-      case None => fs + (key -> Folder(key))
+      case None => fs + (key -> File(key))
       case Some(_) => fs
     }
   }
+
+//  def folderCreator()
+
 }
+
+

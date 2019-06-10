@@ -3,8 +3,8 @@ package org.papila.organizer.service
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import org.papila.organizer.client.PutioClient
-import org.papila.organizer.client.PutioClient.{File, FileId, FolderId}
-import org.papila.organizer.service.StringUtils.extractSeriesName
+import org.papila.organizer.client.PutioClient.{PutIoFile, FileId, FolderId}
+import org.papila.organizer.service.StringUtils.fileToEpisode
 
 import scala.concurrent.ExecutionContext
 
@@ -19,7 +19,7 @@ class Organizer(scanner: PutioScanner, putioClient: PutioClient) {
     scanner.getDownloadedVideos(DownloadsFolderId)
       .foreach { file =>
 
-        val episode = extractSeriesName(file.name)
+        val episode = fileToEpisode(file)
         println(episode.series, episode.season, episode)
 
         var series: Series = null
@@ -57,25 +57,30 @@ object Organizer {
   val downloadsPerPage = "100"
   val videoPerPage = "100"
 
-  type FolderContents = Map[String, Folder]
-  type EpisodeWithFile = (Episode, File)
+  type FilesMap = Map[String, File]
 
   case class Series(name: String, folderId: FolderId, seasons: Map[String, String] = Map.empty, localIdentifier: String = "")
-  case class Episode(series: String, season: String, episode: String)
-  case class Folder(name: String, items: FolderContents = Map.empty, parentId: Option[Int] = None, id: Option[Int] = None)
+  case class Episode(series: String, season: String, episode: String, file: PutIoFile)
+
+  case class File(
+                   name: String,
+                   items: FilesMap = Map.empty,
+                   parentId: Option[Int] = None,
+                   id: Option[Int] = None
+                 )
 
   sealed trait PutIoTask {
-    def run(client: PutioClient)(implicit ec: ExecutionContext, system: ActorSystem, mat: ActorMaterializer): File
+    def run(client: PutioClient)(implicit ec: ExecutionContext, system: ActorSystem, mat: ActorMaterializer): PutIoFile
   }
 
   case class CreateFolderTask(name: String, parentId: FolderId) extends PutIoTask {
     override def run(client: PutioClient)
-                    (implicit ec: ExecutionContext, system: ActorSystem, mat: ActorMaterializer): File =
+                    (implicit ec: ExecutionContext, system: ActorSystem, mat: ActorMaterializer): PutIoFile =
       client.createFolder(name, parentId).file
   }
 
   case class MoveTask(fileId: FileId, toFolderId: FileId) extends PutIoTask {
-    override def run(client: PutioClient)(implicit ec: ExecutionContext, system: ActorSystem, mat: ActorMaterializer): File =
+    override def run(client: PutioClient)(implicit ec: ExecutionContext, system: ActorSystem, mat: ActorMaterializer): PutIoFile =
       client.moveFile(fileId, toFolderId)
   }
 
