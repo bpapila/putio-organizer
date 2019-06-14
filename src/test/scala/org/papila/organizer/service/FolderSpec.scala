@@ -24,10 +24,6 @@ class FolderSpec extends FlatSpec {
     RootFolder.hasSubFolder(SubFolder.name) shouldBe false
   }
 
-  "hasSubFolder" should "return false if folder found" in {
-    RootFolder.hasSubFolder(SubFolder.name) shouldBe false
-  }
-
 }
 
 object FolderFixtures {
