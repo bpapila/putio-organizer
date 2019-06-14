@@ -4,11 +4,11 @@ import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.testkit.TestKit
 import org.papila.organizer.client.PutioClient
-import org.papila.organizer.client.PutioClient.{PutIoFile, FileListResponse, FileType}
+import org.papila.organizer.client.PutioClient.{FileListResponse, FileType, PutIoFile}
 import org.scalatest.{BeforeAndAfterEach, FlatSpec, FlatSpecLike}
 import org.scalatest.Matchers._
 import org.mockito.Mockito._
-import org.papila.organizer.service.Organizer.Series
+import org.papila.organizer.service.Organizer.Folder
 
 import scala.concurrent.ExecutionContext
 import org.scalatest.mockito.MockitoSugar.mock
@@ -30,22 +30,24 @@ class PutioScannerTest extends TestKit(ActorSystem("PutioScannerTest")) with Fla
   val folderId = 100
   val name = "Season 06"
   val downloadsFolderId = 10
-  val seasonFolder = PutIoFile(folderId, name, downloadsFolderId)
-  val series = Series(seriesName, folderId)
+  val seasonFolderFile = PutIoFile(folderId, name, downloadsFolderId)
+  val seasonFolder = Folder(seasonFolderFile.name, seasonFolderFile.id)
+  val series = Folder(seriesName, folderId)
   val perPage = "9999"
-  val seriesFolder = PutIoFile(folderId, seriesName, 0)
+  val seriesFolderFile = PutIoFile(folderId, seriesName, 0)
 
   "addSeason" should "add season from folder to series" in {
-    scanner.addSeason(seasonFolder, series) shouldBe series.copy(seasons = Map("Season 06" -> folderId.toString))
+    scanner.addSeason(seasonFolderFile, series) shouldBe series.copy(items = Map("Season 06" -> seasonFolder))
   }
 
   "addSeries" should "return Series with all seasons scanned" in {
-    when(clientImpl.listFiles(seriesFolder.id, Some(FileType.Folder), "999"))
+    when(clientImpl.listFiles(seriesFolderFile.id, Some(FileType.Folder), "999"))
       .thenReturn(
         FileListResponse(List(PutIoFile(25, "Season 05", downloadsFolderId), PutIoFile(26, "Season 06", downloadsFolderId)), PutIoFile(downloadsFolderId, seriesName, 0), None)
       )
 
-    scanner.addSeries(seriesFolder) shouldBe Series(seriesName, folderId, Map("Season 05" -> "25", "Season 06" -> "26"))
+    scanner.addSeries(seriesFolderFile) shouldBe
+      Folder(seriesName, folderId, Map("Season 05" -> Folder("Season 05", 25), "Season 06" -> Folder("Season 06", 26)))
   }
 
   "getDownloadedVideos" should "return downloaded videos" in {

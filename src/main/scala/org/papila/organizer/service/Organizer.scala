@@ -22,28 +22,28 @@ class Organizer(scanner: PutioScanner, putioClient: PutioClient) {
         val episode = fileToEpisode(file)
         println(episode.series, episode.season, episode)
 
-        var series: Series = null
+        var series: Folder = null
 
         // check series root folder there
         dict get episode.series match {
           case None =>
             val folderId = putioClient.createFolder(episode.series, LibraryFolder).file.id
-            series = Series(episode.series, folderId)
+            series = Folder(episode.series, folderId)
             dict = dict + (episode.series -> series)
           case Some(s) => series = s
         }
 
         val seasonFolderName = "Season " + episode.season
-        dict(episode.series).seasons get seasonFolderName match {
+        dict(episode.series).items get seasonFolderName match {
           case None =>
-            val folderId = putioClient.createFolder(s"Season ${episode.season}", series.folderId).file.id
-            series = series.copy(seasons = series.seasons + (seasonFolderName -> folderId.toString))
+            val createdFolder = putioClient.createFolder(s"Season ${episode.season}", series.folderId).file
+            series = series.copy(items = series.items + (seasonFolderName -> Folder(createdFolder.name, createdFolder.id)))
             dict = dict + (episode.series -> series)
           case Some(s) =>
-            series = series.copy(seasons = series.seasons + (episode.season -> s))
+            series = series.copy(items = series.items + (episode.season -> s))
         }
 
-        putioClient.moveFile(file.id, Integer.parseInt(series.seasons(seasonFolderName)))
+        putioClient.moveFile(file.id, series.items(seasonFolderName).folderId)
 
       }
   }
@@ -59,7 +59,7 @@ object Organizer {
 
   type FilesMap = Map[String, File]
 
-  case class Series(name: String, folderId: FolderId, seasons: Map[String, String] = Map.empty, localIdentifier: String = "")
+  case class Folder(name: String, folderId: FolderId, items: Map[String, Folder] = Map.empty, localIdentifier: String = "")
   case class Episode(series: String, season: String, episode: String, file: PutIoFile)
 
   case class File(

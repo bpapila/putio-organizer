@@ -22,7 +22,7 @@ object GraphPutio extends App with PutioOrganizer {
   val putIoService = new PutIoService(putIoClient)
 
   // folder structure
-  var dict: Map[FileName, Organizer.Series] = scanner.scan(LibraryFolder)
+  var dict: Map[FileName, Organizer.Folder] = scanner.scan(LibraryFolder)
 
   val (queue, src) = videoFinderRecursive(putIoService)
   val g = src.toMat(Sink.ignore)(Keep.right).run()
