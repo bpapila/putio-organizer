@@ -20,7 +20,7 @@ class Organizer(scanner: PutioScanner, putioClient: PutioClient) {
       .foreach { file =>
 
         val episode = fileToEpisode(file)
-        println(episode.series, episode.season, episode)
+        println(episode.series, episode.seasonNo, episode)
 
         var series: Folder = null
 
@@ -33,14 +33,14 @@ class Organizer(scanner: PutioScanner, putioClient: PutioClient) {
           case Some(s) => series = s
         }
 
-        val seasonFolderName = "Season " + episode.season
+        val seasonFolderName = "Season " + episode.seasonNo
         dict(episode.series).items get seasonFolderName match {
           case None =>
-            val createdFolder = putioClient.createFolder(s"Season ${episode.season}", series.folderId).file
+            val createdFolder = putioClient.createFolder(s"Season ${episode.seasonNo}", series.folderId).file
             series = series.copy(items = series.items + (seasonFolderName -> Folder(createdFolder.name, createdFolder.id)))
             dict = dict + (episode.series -> series)
           case Some(s) =>
-            series = series.copy(items = series.items + (episode.season -> s))
+            series = series.copy(items = series.items + (episode.seasonNo -> s))
         }
 
         putioClient.moveFile(file.id, series.items(seasonFolderName).folderId)

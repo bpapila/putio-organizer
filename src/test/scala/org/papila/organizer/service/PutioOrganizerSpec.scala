@@ -6,14 +6,15 @@ import akka.stream.scaladsl.{Keep, Sink, Source, SourceQueueWithComplete}
 import org.mockito.Mockito.{never, reset, times, verify}
 import org.papila.organizer.GraphPutio
 import org.papila.organizer.client.PutioClient
-import org.papila.organizer.client.PutioClient.{FileType, PutIoFile}
-import org.papila.organizer.service.Organizer.{Episode, File, FilesMap}
+import org.papila.organizer.client.PutioClient.{CreateFolderResponse, FileType, PutIoFile}
+import org.papila.organizer.service.Organizer.{Episode, File, FilesMap, Folder}
 import org.scalatest.Matchers._
 import org.scalatest.mockito.MockitoSugar.mock
 import org.scalatest.{BeforeAndAfter, FlatSpec}
-
+import org.mockito.Mockito._
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext}
+import org.mockito.ArgumentMatchers._
 
 class PutioOrganizerSpec extends FlatSpec with BeforeAndAfter {
 
@@ -119,7 +120,7 @@ class PutioOrganizerSpec extends FlatSpec with BeforeAndAfter {
     val updatedFc = GraphPutio.organizeSeriesIntoFolder(fc, episode)
 
     updatedFc(episode.series) shouldBe
-      File(episode.series, Map(episode.season -> File(episode.season)))
+      File(episode.series, Map(episode.seasonNo -> File(episode.seasonNo)))
   }
 
   "organizeFoldersFlow" should "organize files into folder structure" in {
@@ -135,6 +136,50 @@ class PutioOrganizerSpec extends FlatSpec with BeforeAndAfter {
     result shouldBe FolderContents
 
   }
+
+  "folderCreatorFlow" should "create missing series and season folders" in {
+    val rootFolder = Folder("TV Series", 1)
+
+    when(putioClient.createFolder("Six Feet Under", 1))
+      .thenReturn(CreateFolderResponse(PutIoFile(10, "Six Feet Under", 1)))
+    when(putioClient.createFolder("Season 02", 10))
+      .thenReturn(CreateFolderResponse(PutIoFile(100, "Season 02", 10)))
+
+    val f = Source(List(Episode1))
+      .via(GraphPutio.folderCreatorFlow(rootFolder, putioClient)).take(1).toMat(Sink.ignore)(Keep.right).run()
+
+    Await.result(f, 5 seconds)
+
+    verify(putioClient, times(1)).createFolder("Six Feet Under", 1)
+    verify(putioClient, times(1)).createFolder("Season 02", 10)
+  }
+
+  "folderCreatorFlow" should "create missing season folder when series already exists" in {
+    val rootFolder = Folder("TV Series", 1, Map("Six Feet Under" -> Folder("Six Feet Under", 10)))
+
+    when(putioClient.createFolder("Season 02", 10))
+      .thenReturn(CreateFolderResponse(PutIoFile(100, "Season 02", 10)))
+
+    val f = Source(List(Episode1))
+      .via(GraphPutio.folderCreatorFlow(rootFolder, putioClient)).take(1).toMat(Sink.ignore)(Keep.right).run()
+
+    Await.result(f, 5 seconds)
+
+    verify(putioClient, times(1)).createFolder("Season 02", 10)
+  }
+
+  "folderCreatorFlow" should "not create folder when fodlers exists" in {
+    val seasonFolder = Folder("Season 02", 100)
+    val seriesFolder = Folder("Six Feet Under", 10, Map(seasonFolder.name -> seasonFolder))
+
+    val rootFolder = Folder("TV Series", 1, Map("Six Feet Under" -> seriesFolder))
+
+    val f = Source(List(Episode1))
+      .via(GraphPutio.folderCreatorFlow(rootFolder, putioClient)).take(1).toMat(Sink.ignore)(Keep.right).run()
+
+    Await.result(f, 5 seconds)
+  }
+
 }
 
 object Fixtures {

@@ -15,7 +15,8 @@ import spray.json.{DefaultJsonProtocol, JsonFormat, RootJsonFormat}
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext}
 
-class PutioClient(val token: AccessToken) {
+class PutioClient(val token: AccessToken)
+                 (implicit ec: ExecutionContext, system: ActorSystem, materializer: ActorMaterializer) {
 
   import PutioClient._
   import PutioJsonSupport._
@@ -23,8 +24,7 @@ class PutioClient(val token: AccessToken) {
   val url = Uri(s"https://api.put.io/v2/files/list")
   val tokenTuple = ("oauth_token", token)
 
-  def listFiles(f: FolderId, t: Option[FileType], perPage: String)
-               (implicit ec: ExecutionContext, system: ActorSystem, materializer: ActorMaterializer): FileListResponse = {
+  def listFiles(f: FolderId, t: Option[FileType], perPage: String): FileListResponse = {
 
     val query = t match {
       case Some(fileType) => Query(tokenTuple, ("file_type", fileType.toString), ("parent_id", f.toString), ("per_page", perPage))
@@ -45,8 +45,7 @@ class PutioClient(val token: AccessToken) {
     Await.result(rs, 10 seconds)
   }
 
-  def createFolder(name: String, parentId: FileId)
-                  (implicit ec: ExecutionContext, system: ActorSystem, materializer: ActorMaterializer): CreateFolderResponse = {
+  def createFolder(name: String, parentId: FileId): CreateFolderResponse = {
     println(s"Creating folder $name on parent $parentId")
 
     val body = FormData(("name", name.toString), ("parent_id", parentId.toString))
@@ -68,8 +67,7 @@ class PutioClient(val token: AccessToken) {
     Await.result(res, 10 seconds)
   }
 
-  def moveFile(f: FileId, target: FileId)
-              (implicit ec: ExecutionContext, system: ActorSystem, materializer: ActorMaterializer): PutIoFile = {
+  def moveFile(f: FileId, target: FileId): PutIoFile = {
     println(s"Moving file $f to $target")
     val uri = Uri("https://api.put.io/v2/files/move").withQuery(Query(tokenTuple))
     val body = FormData(("file_ids", f.toString), ("parent_id", target.toString))

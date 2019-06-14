@@ -4,6 +4,7 @@ import akka.NotUsed
 import akka.actor.ActorSystem
 import akka.stream.scaladsl.{Flow, Source, SourceQueueWithComplete}
 import akka.stream.{ActorMaterializer, OverflowStrategy}
+import org.papila.organizer.client.PutioClient
 import org.papila.organizer.client.PutioClient.PutIoFile
 import org.papila.organizer.service.Organizer._
 import org.papila.organizer.service.StringUtils.fileToEpisode
@@ -61,12 +62,33 @@ trait PutioOrganizer {
     val fsWithSeries = createFileEntry(fs, e.series)
 
     val seriesFolder = fsWithSeries(e.series)
-    val seasons = seriesFolder.items ++ createFileEntry(seriesFolder.items, e.season)
+    val seasons = seriesFolder.items ++ createFileEntry(seriesFolder.items, e.seasonNo)
 
     fsWithSeries + (
       e.series -> fsWithSeries(e.series).copy(items = seasons)
       )
   }
+
+  def folderCreatorFlow(root: Folder, putioClient: PutioClient): Flow[Episode, Episode, NotUsed] =
+    Flow[Episode].statefulMapConcat { () =>
+      var folder = root
+      episode => {
+        if (!folder.hasSubFolder(episode.series)) {
+          val seriesPutioFolder = putioClient.createFolder(episode.series, folder.folderId).file
+          folder = folder.addSubFolder(Folder(seriesPutioFolder.name, seriesPutioFolder.id))
+        }
+
+        var seriesFolder = folder.items(episode.series)
+        if (!seriesFolder.hasSubFolder(s"Season ${episode.seasonNo}")) {
+          val seasonPutioFolder = putioClient.createFolder(s"Season ${episode.seasonNo}", seriesFolder.folderId).file
+          seriesFolder = seriesFolder.addSubFolder(Folder(seasonPutioFolder.name, seasonPutioFolder.id))
+        }
+
+        folder = folder.addSubFolder(seriesFolder)
+
+        List(episode)
+      }
+    }
 
   def createFileEntry(fs: FilesMap, key: String): FilesMap = {
     fs get key match {
@@ -75,7 +97,7 @@ trait PutioOrganizer {
     }
   }
 
-//  def folderCreator()
+  //  def folderCreator()
 
 }
 

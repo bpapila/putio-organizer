@@ -5,7 +5,7 @@ import akka.stream.ActorMaterializer
 import akka.testkit.TestKit
 import org.papila.organizer.client.PutioClient
 import org.papila.organizer.client.PutioClient.{FileListResponse, FileType, PutIoFile}
-import org.scalatest.{BeforeAndAfterEach, FlatSpec, FlatSpecLike}
+import org.scalatest.{BeforeAndAfterEach, FlatSpecLike}
 import org.scalatest.Matchers._
 import org.mockito.Mockito._
 import org.papila.organizer.service.Organizer.Folder
