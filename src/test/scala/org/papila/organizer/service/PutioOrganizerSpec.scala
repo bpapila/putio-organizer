@@ -124,7 +124,7 @@ class PutioOrganizerSpec extends FlatSpec with BeforeAndAfter {
 
   "organizeFoldersFlow" should "organize files into folder structure" in {
 
-    val testList = List(Episode1, Episode2, Episode3, Episode4)
+    val testList = List(SixFeetUnderEpisode1, SixFeetUnderEpisode2, SixFeetUnderEpisode3, SopranosEpisode)
 
     val res = Source(testList)
       .via(GraphPutio.organizeFoldersFlow())
@@ -144,7 +144,7 @@ class PutioOrganizerSpec extends FlatSpec with BeforeAndAfter {
     when(putioClient.createFolder("Season 02", 10))
       .thenReturn(CreateFolderResponse(PutIoFile(100, "Season 02", 10)))
 
-    val f = Source(List(Episode1))
+    val f = Source(List(SixFeetUnderEpisode1))
       .via(GraphPutio.folderCreatorFlow(rootFolder, putioClient)).take(1).toMat(Sink.ignore)(Keep.right).run()
 
     Await.result(f, 5 seconds)
@@ -159,7 +159,7 @@ class PutioOrganizerSpec extends FlatSpec with BeforeAndAfter {
     when(putioClient.createFolder("Season 02", 10))
       .thenReturn(CreateFolderResponse(PutIoFile(100, "Season 02", 10)))
 
-    val f = Source(List(Episode1))
+    val f = Source(List(SixFeetUnderEpisode1))
       .via(GraphPutio.folderCreatorFlow(rootFolder, putioClient)).take(1).toMat(Sink.ignore)(Keep.right).run()
 
     Await.result(f, 5 seconds)
@@ -167,18 +167,36 @@ class PutioOrganizerSpec extends FlatSpec with BeforeAndAfter {
     verify(putioClient, times(1)).createFolder("Season 02", 10)
   }
 
-  "folderCreatorFlow" should "not create folder when fodlers exists" in {
-    val f = Source(List(Episode1))
+  "folderCreatorFlow" should "not create folder when folders exists" in {
+    val f = Source(List(SixFeetUnderEpisode1))
       .via(GraphPutio.folderCreatorFlow(RootFolder, putioClient)).take(1).toMat(Sink.ignore)(Keep.right).run()
 
     Await.result(f, 5 seconds)
   }
 
+  "folderCreatorFlow" should "only create folder once" in {
+    val rootFolder = Folder("TV Series", 1, Map("Six Feet Under" -> Folder("Six Feet Under", 10)))
+
+    when(putioClient.createFolder("Season 02", 10))
+      .thenReturn(CreateFolderResponse(PutIoFile(100, "Season 02", 10)))
+
+    val episodeList = List(SixFeetUnderEpisode1, SixFeetUnderEpisode2)
+
+    val f = Source(episodeList)
+      .via(GraphPutio.folderCreatorFlow(rootFolder, putioClient))
+      .take(episodeList.size)
+      .toMat(Sink.ignore)(Keep.right).run()
+
+    Await.result(f, 5 seconds)
+
+    verify(putioClient, times(1)).createFolder("Season 02", 10)
+  }
+
   "folderCreatorFlow" should "send episode downstream" in {
-    val f = Source(List(Episode1))
+    val f = Source(List(SixFeetUnderEpisode1))
       .via(GraphPutio.folderCreatorFlow(RootFolder, putioClient)).take(1).toMat(Sink.seq)(Keep.right).run()
 
-    Await.result(f, 5 seconds) shouldBe Seq(Episode1)
+    Await.result(f, 5 seconds) shouldBe Seq(SixFeetUnderEpisode1)
   }
 
 }
@@ -193,10 +211,10 @@ object Fixtures {
   val Folder2 = PutIoFile(123456, "Folder2", 123, FileType.Folder.toString)
   val File1 = PutIoFile(123789, "File1", 123456, FileType.Video.toString)
 
-  val Episode1 = Episode("Six Feet Under", "02", "01", mock[PutIoFile])
-  val Episode2 = Episode("Six Feet Under", "02", "02", mock[PutIoFile])
-  val Episode3 = Episode("Six Feet Under", "03", "09", mock[PutIoFile])
-  val Episode4 = Episode("Sopranos", "04", "01", mock[PutIoFile])
+  val SixFeetUnderEpisode1 = Episode("Six Feet Under", "02", "01", mock[PutIoFile])
+  val SixFeetUnderEpisode2 = Episode("Six Feet Under", "02", "02", mock[PutIoFile])
+  val SixFeetUnderEpisode3 = Episode("Six Feet Under", "03", "09", mock[PutIoFile])
+  val SopranosEpisode = Episode("Sopranos", "04", "01", mock[PutIoFile])
 
   val FolderContents = Map(
     "Six Feet Under" -> File(
