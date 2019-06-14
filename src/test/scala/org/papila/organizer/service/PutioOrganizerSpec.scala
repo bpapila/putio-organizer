@@ -3,7 +3,7 @@ package org.papila.organizer.service
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Keep, Sink, Source, SourceQueueWithComplete}
-import org.mockito.Mockito.{never, reset, times, verify}
+import org.mockito.Mockito.{never, reset, times, verify, _}
 import org.papila.organizer.GraphPutio
 import org.papila.organizer.client.PutioClient
 import org.papila.organizer.client.PutioClient.{CreateFolderResponse, FileType, PutIoFile}
@@ -11,10 +11,9 @@ import org.papila.organizer.service.Organizer.{Episode, File, FilesMap, Folder}
 import org.scalatest.Matchers._
 import org.scalatest.mockito.MockitoSugar.mock
 import org.scalatest.{BeforeAndAfter, FlatSpec}
-import org.mockito.Mockito._
+
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext}
-import org.mockito.ArgumentMatchers._
 
 class PutioOrganizerSpec extends FlatSpec with BeforeAndAfter {
 
@@ -169,20 +168,26 @@ class PutioOrganizerSpec extends FlatSpec with BeforeAndAfter {
   }
 
   "folderCreatorFlow" should "not create folder when fodlers exists" in {
-    val seasonFolder = Folder("Season 02", 100)
-    val seriesFolder = Folder("Six Feet Under", 10, Map(seasonFolder.name -> seasonFolder))
-
-    val rootFolder = Folder("TV Series", 1, Map("Six Feet Under" -> seriesFolder))
-
     val f = Source(List(Episode1))
-      .via(GraphPutio.folderCreatorFlow(rootFolder, putioClient)).take(1).toMat(Sink.ignore)(Keep.right).run()
+      .via(GraphPutio.folderCreatorFlow(RootFolder, putioClient)).take(1).toMat(Sink.ignore)(Keep.right).run()
 
     Await.result(f, 5 seconds)
+  }
+
+  "folderCreatorFlow" should "send episode downstream" in {
+    val f = Source(List(Episode1))
+      .via(GraphPutio.folderCreatorFlow(RootFolder, putioClient)).take(1).toMat(Sink.seq)(Keep.right).run()
+
+    Await.result(f, 5 seconds) shouldBe Seq(Episode1)
   }
 
 }
 
 object Fixtures {
+
+  val SeasonFolder = Folder("Season 02", 100)
+  val SeriesFolder = Folder("Six Feet Under", 10, Map(SeasonFolder.name -> SeasonFolder))
+  val RootFolder = Folder("TV Series", 1, Map("Six Feet Under" -> SeriesFolder))
 
   val Folder1 = PutIoFile(123123, "Folder1", 123, FileType.Folder.toString)
   val Folder2 = PutIoFile(123456, "Folder2", 123, FileType.Folder.toString)
