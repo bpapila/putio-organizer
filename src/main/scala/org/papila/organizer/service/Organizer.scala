@@ -59,8 +59,18 @@ object Organizer {
 
   type FilesMap = Map[String, File]
 
-  case class Folder(name: String, folderId: FolderId, items: Map[String, Folder] = Map.empty, localIdentifier: String = "")
-  case class Episode(series: String, season: String, episode: String, file: PutIoFile)
+  case class Folder(name: String, folderId: FolderId, items: Map[String, Folder] = Map.empty) {
+    def addSubFolder(folder: Folder): Folder = items.get(name) match {
+      case None => this.copy(items = folder.items + (folder.name -> folder))
+      case Some(_) => this.copy()
+    }
+
+    def hasSubFolder(folderName: String): Boolean = items.get(folderName) match {
+      case None => false
+      case Some(_) => true
+    }
+  }
+  case class Episode(series: String, seasonNo: String, episode: String, file: PutIoFile)
 
   case class File(
                    name: String,
