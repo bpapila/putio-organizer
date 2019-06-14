@@ -79,12 +79,18 @@ trait PutioOrganizer {
         }
 
         var seriesFolder = folder.items(episode.series)
-        if (!seriesFolder.hasSubFolder(s"Season ${episode.seasonNo}")) {
+        val seasonFolder = if (!seriesFolder.hasSubFolder(s"Season ${episode.seasonNo}")) {
           val seasonPutioFolder = putioClient.createFolder(s"Season ${episode.seasonNo}", seriesFolder.folderId).file
-          seriesFolder = seriesFolder.addSubFolder(Folder(seasonPutioFolder.name, seasonPutioFolder.id))
+          val seasonFolder = Folder(seasonPutioFolder.name, seasonPutioFolder.id)
+          seriesFolder = seriesFolder.addSubFolder(seasonFolder)
+          seasonFolder
+        } else {
+          seriesFolder.items(s"Season ${episode.seasonNo}")
         }
 
         folder = folder.addSubFolder(seriesFolder)
+
+        putioClient.moveFile(episode.file.id, seasonFolder.folderId)
 
         List(episode)
       }

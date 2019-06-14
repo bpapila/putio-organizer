@@ -6,12 +6,12 @@ import akka.stream.scaladsl.{Keep, Sink, Source, SourceQueueWithComplete}
 import org.mockito.Mockito.{never, reset, times, verify, _}
 import org.papila.organizer.GraphPutio
 import org.papila.organizer.client.PutioClient
-import org.papila.organizer.client.PutioClient.{CreateFolderResponse, FileType, PutIoFile}
+import org.papila.organizer.client.PutioClient.{CreateFolderResponse, FileId, FileType, PutIoFile}
 import org.papila.organizer.service.Organizer.{Episode, File, FilesMap, Folder}
 import org.scalatest.Matchers._
 import org.scalatest.mockito.MockitoSugar.mock
 import org.scalatest.{BeforeAndAfter, FlatSpec}
-
+import org.mockito.ArgumentMatchers._
 import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext}
 
@@ -124,7 +124,7 @@ class PutioOrganizerSpec extends FlatSpec with BeforeAndAfter {
 
   "organizeFoldersFlow" should "organize files into folder structure" in {
 
-    val testList = List(SixFeetUnderEpisode1, SixFeetUnderEpisode2, SixFeetUnderEpisode3, SopranosEpisode)
+    val testList = List(SixFeetUnderS02E01, SixFeetUnderS02E02, SixFeetUnderS03E09, SopranosEpisode)
 
     val res = Source(testList)
       .via(GraphPutio.organizeFoldersFlow())
@@ -144,7 +144,7 @@ class PutioOrganizerSpec extends FlatSpec with BeforeAndAfter {
     when(putioClient.createFolder("Season 02", 10))
       .thenReturn(CreateFolderResponse(PutIoFile(100, "Season 02", 10)))
 
-    val f = Source(List(SixFeetUnderEpisode1))
+    val f = Source(List(SixFeetUnderS02E01))
       .via(GraphPutio.folderCreatorFlow(rootFolder, putioClient)).take(1).toMat(Sink.ignore)(Keep.right).run()
 
     Await.result(f, 5 seconds)
@@ -159,7 +159,7 @@ class PutioOrganizerSpec extends FlatSpec with BeforeAndAfter {
     when(putioClient.createFolder("Season 02", 10))
       .thenReturn(CreateFolderResponse(PutIoFile(100, "Season 02", 10)))
 
-    val f = Source(List(SixFeetUnderEpisode1))
+    val f = Source(List(SixFeetUnderS02E01))
       .via(GraphPutio.folderCreatorFlow(rootFolder, putioClient)).take(1).toMat(Sink.ignore)(Keep.right).run()
 
     Await.result(f, 5 seconds)
@@ -168,7 +168,7 @@ class PutioOrganizerSpec extends FlatSpec with BeforeAndAfter {
   }
 
   "folderCreatorFlow" should "not create folder when folders exists" in {
-    val f = Source(List(SixFeetUnderEpisode1))
+    val f = Source(List(SixFeetUnderS02E01))
       .via(GraphPutio.folderCreatorFlow(RootFolder, putioClient)).take(1).toMat(Sink.ignore)(Keep.right).run()
 
     Await.result(f, 5 seconds)
@@ -180,7 +180,7 @@ class PutioOrganizerSpec extends FlatSpec with BeforeAndAfter {
     when(putioClient.createFolder("Season 02", 10))
       .thenReturn(CreateFolderResponse(PutIoFile(100, "Season 02", 10)))
 
-    val episodeList = List(SixFeetUnderEpisode1, SixFeetUnderEpisode2)
+    val episodeList = List(SixFeetUnderS02E01, SixFeetUnderS02E02)
 
     val f = Source(episodeList)
       .via(GraphPutio.folderCreatorFlow(rootFolder, putioClient))
@@ -193,10 +193,29 @@ class PutioOrganizerSpec extends FlatSpec with BeforeAndAfter {
   }
 
   "folderCreatorFlow" should "send episode downstream" in {
-    val f = Source(List(SixFeetUnderEpisode1))
+    val f = Source(List(SixFeetUnderS02E01))
       .via(GraphPutio.folderCreatorFlow(RootFolder, putioClient)).take(1).toMat(Sink.seq)(Keep.right).run()
 
-    Await.result(f, 5 seconds) shouldBe Seq(SixFeetUnderEpisode1)
+    Await.result(f, 5 seconds) shouldBe Seq(SixFeetUnderS02E01)
+  }
+
+  "folderCreatorFlow" should "move episode to its season folder" in {
+
+    when(putioClient.moveFile(any[FileId], any[FileId])).thenReturn(mock[PutIoFile])
+
+    val seasonFolderId = 101
+    val seasonFolder = Folder("Season 02", seasonFolderId)
+    val seriesFolder = Folder("Six Feet Under", 10, Map("Season 02" -> seasonFolder))
+    val rootFolder = Folder("TV Series", 1, Map("Six Feet Under" -> seriesFolder))
+
+    val f = Source(List(SixFeetUnderS02E01, SixFeetUnderS02E02))
+      .via(GraphPutio.folderCreatorFlow(rootFolder, putioClient)).take(2).toMat(Sink.ignore)(Keep.right).run()
+
+    Await.result(f, 5 seconds)
+
+    verify(putioClient, times(1)).moveFile(SixFeetUnderS02E01.file.id, seasonFolderId)
+    verify(putioClient, times(1)).moveFile(SixFeetUnderS02E02.file.id, seasonFolderId)
+
   }
 
 }
@@ -211,9 +230,9 @@ object Fixtures {
   val Folder2 = PutIoFile(123456, "Folder2", 123, FileType.Folder.toString)
   val File1 = PutIoFile(123789, "File1", 123456, FileType.Video.toString)
 
-  val SixFeetUnderEpisode1 = Episode("Six Feet Under", "02", "01", mock[PutIoFile])
-  val SixFeetUnderEpisode2 = Episode("Six Feet Under", "02", "02", mock[PutIoFile])
-  val SixFeetUnderEpisode3 = Episode("Six Feet Under", "03", "09", mock[PutIoFile])
+  val SixFeetUnderS02E01 = Episode("Six Feet Under", "02", "01", PutIoFile(1001, "Six Feet Under S02E01", 200, "VIDEO"))
+  val SixFeetUnderS02E02 = Episode("Six Feet Under", "02", "02", PutIoFile(1002, "Six Feet Under S02E02", 200, "VIDEO"))
+  val SixFeetUnderS03E09 = Episode("Six Feet Under", "03", "09", PutIoFile(1003, "Six Feet Under S03E09", 200, "VIDEO"))
   val SopranosEpisode = Episode("Sopranos", "04", "01", mock[PutIoFile])
 
   val FolderContents = Map(
