@@ -5,7 +5,7 @@ import akka.stream.ActorMaterializer
 import akka.stream.scaladsl.{Keep, Sink}
 import org.papila.organizer.client.PutioClient
 import org.papila.organizer.client.PutioClient.FileName
-import org.papila.organizer.service.Organizer.LibraryFolder
+import org.papila.organizer.service.Organizer.{Folder, LibraryFolderId}
 import org.papila.organizer.service.{Organizer, PutIoService, PutioOrganizer, PutioScanner}
 
 import scala.concurrent.Await
@@ -22,12 +22,10 @@ object GraphPutio extends App with PutioOrganizer {
   val putIoService = new PutIoService(putIoClient)
 
   // folder structure
-  var dict: Map[FileName, Organizer.Folder] = scanner.scan(LibraryFolder)
+  var dict: Map[FileName, Organizer.Folder] = scanner.scan(LibraryFolderId)
 
-  val (queue, src) = videoFinderRecursive(putIoService)
-  val g = src.toMat(Sink.ignore)(Keep.right).run()
-
-  putIoService.offerFilesUnderDir(Organizer.LibraryFolder, queue)
-
-  Await.result(g, 180 seconds)
+  Await.result(
+    organize(Folder("Tv Series", LibraryFolderId, dict), putIoClient, putIoService),
+    100 seconds
+  )
 }

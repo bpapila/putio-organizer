@@ -14,7 +14,7 @@ class Organizer(scanner: PutioScanner, putioClient: PutioClient) {
 
   def organize()(implicit ec: ExecutionContext, system: ActorSystem, mat: ActorMaterializer) = {
 
-    var dict = scanner.scan(LibraryFolder)
+    var dict = scanner.scan(LibraryFolderId)
 
     scanner.getDownloadedVideos(DownloadsFolderId)
       .foreach { file =>
@@ -27,7 +27,7 @@ class Organizer(scanner: PutioScanner, putioClient: PutioClient) {
         // check series root folder there
         dict get episode.series match {
           case None =>
-            val folderId = putioClient.createFolder(episode.series, LibraryFolder).file.id
+            val folderId = putioClient.createFolder(episode.series, LibraryFolderId).file.id
             series = Folder(episode.series, folderId)
             dict = dict + (episode.series -> series)
           case Some(s) => series = s
@@ -52,7 +52,7 @@ class Organizer(scanner: PutioScanner, putioClient: PutioClient) {
 object Organizer {
 
   val DownloadsFolderId = 619201714
-  val LibraryFolder = 619877202
+  val LibraryFolderId = 619877202
 
   val downloadsPerPage = "100"
   val videoPerPage = "100"

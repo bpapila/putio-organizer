@@ -2,7 +2,7 @@ package org.papila.organizer.service
 
 import akka.NotUsed
 import akka.actor.ActorSystem
-import akka.stream.scaladsl.{Flow, Source, SourceQueueWithComplete}
+import akka.stream.scaladsl.{Flow, Sink, Source, SourceQueueWithComplete}
 import akka.stream.{ActorMaterializer, OverflowStrategy}
 import org.papila.organizer.client.PutioClient
 import org.papila.organizer.client.PutioClient.PutIoFile
@@ -24,8 +24,7 @@ trait PutioOrganizer {
     case folder@PutIoFile(folderId, _, _, "FOLDER") =>
       putIoService.offerFilesUnderDir(folderId, queue)
       folder
-    case f@PutIoFile(_, _, _, "VIDEO") =>
-      f
+    case f@PutIoFile(_, _, _, "VIDEO") => f;
   }
 
   def videoFileFilter = Flow[PutIoFile].collect {
@@ -45,13 +44,20 @@ trait PutioOrganizer {
         (
           queue,
           source
-            .log("SOURCE", x => println(s"SOURCE:     $x"))
             .via(fetchFolderFilesRecFlow(queue, putioService))
             .via(videoFileFilter)
+            .log("VIDEO FILE:", x => println(s"VIDEO FILE:     $x"))
             .via(fileNameExtractor)
             .log("EXTRACTOR", x => println(s"EXTRACTOR:     $x"))
         )
     }
+  }
+
+  def organize(root: Folder, client: PutioClient, service: PutIoService) = {
+    val (queue, src) = videoFinderRecursive(service)
+    val f = src via folderCreatorFlow(root, client) runWith(Sink.ignore)
+    service.offerFilesUnderDir(Organizer.DownloadsFolderId, queue)
+    f
   }
 
   def organizeFoldersFlow(): Flow[Episode, FilesMap, NotUsed] =
@@ -102,9 +108,4 @@ trait PutioOrganizer {
       case Some(_) => fs
     }
   }
-
-  //  def folderCreator()
-
 }
-
-
