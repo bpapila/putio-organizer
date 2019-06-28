@@ -3,33 +3,32 @@ package org.papila.organizer
 import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.StatusCodes
-import akka.stream.ActorMaterializer
 import akka.http.scaladsl.server.Directives._
+import akka.stream.ActorMaterializer
 import org.papila.organizer.client.PutioClient
-import org.papila.organizer.client.PutioClient.AccessToken
-import org.papila.organizer.service.{Organizer, PutioScanner}
+import org.papila.organizer.client.PutioClient.FileName
+import org.papila.organizer.service.Organizer.{Folder, LibraryFolderId}
+import org.papila.organizer.service.{Organizer, PutIoService, PutioOrganizer, PutioScanner}
 
-import scala.concurrent.Future
+import scala.concurrent.{ExecutionContextExecutor, Future}
 import scala.util.{Failure, Success}
 
-object WebServer extends App {
+object WebServer extends App with PutioOrganizer {
 
-  implicit val system = ActorSystem("PutioOrganizer")
-  implicit val mat = ActorMaterializer()
-  implicit val ec = system.dispatcher
+  implicit val system: ActorSystem = ActorSystem("PutioOrganizer")
+  implicit val materializer: ActorMaterializer = ActorMaterializer()
+  implicit val ec: ExecutionContextExecutor = system.dispatcher
 
   val putioClient = new PutioClient("VTQWG4M3LK5I5LD7IL25")
-
+  val putIoService = new PutIoService(putioClient)
   val scanner = new PutioScanner(putioClient)
-  val organizer = new Organizer(scanner, putioClient)
 
   val callbackRoute = path("callback") {
     post {
-      val f = Future {
-        organizer.organize()
-      }
-
-      f onComplete {
+      Future {
+        val dict: Map[FileName, Organizer.Folder] = scanner.scanUnder(LibraryFolderId)
+        organize(Folder("Tv Series", LibraryFolderId, dict), putioClient, putIoService)
+      } onComplete {
         case Failure(e) => println("Failed to organize: " + e.getMessage)
         case Success(_) => println("Organized")
       }
@@ -44,11 +43,6 @@ object WebServer extends App {
 
   val bindingFuture = Http().bindAndHandle(routes, "0.0.0.0", Integer.parseInt(port))
 
-  println(s"Server online at http://localhost:$port/" +s"")
-
-//  bindingFuture
-//    .flatMap(_.unbind()) // trigger unbinding from the port
-//    .onComplete(_ => system.terminate()) // and shutdown when done
-
+  println(s"Server online at http://0.0.0.0:$port/" + s"")
 
 }

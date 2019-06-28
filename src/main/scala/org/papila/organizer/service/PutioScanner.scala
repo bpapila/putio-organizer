@@ -10,8 +10,8 @@ import scala.concurrent.ExecutionContext
 
 class PutioScanner(val client: PutioClient) {
 
-  def scan(folderId: FolderId)
-          (implicit ec: ExecutionContext, system: ActorSystem, mat: ActorMaterializer): Map[FileName, Folder] = {
+  def scanUnder(folderId: FolderId)
+               (implicit ec: ExecutionContext, system: ActorSystem, mat: ActorMaterializer): Map[FileName, Folder] = {
 
     client.listFiles(folderId, Some(FileType.Folder), "999").files.map {
       seriesFolder: PutIoFile => seriesFolder.name -> addSeries(seriesFolder)

@@ -22,7 +22,7 @@ object GraphPutio extends App with PutioOrganizer {
   val putIoService = new PutIoService(putIoClient)
 
   // folder structure
-  var dict: Map[FileName, Organizer.Folder] = scanner.scan(LibraryFolderId)
+  var dict: Map[FileName, Organizer.Folder] = scanner.scanUnder(LibraryFolderId)
 
   Await.result(
     organize(Folder("Tv Series", LibraryFolderId, dict), putIoClient, putIoService),

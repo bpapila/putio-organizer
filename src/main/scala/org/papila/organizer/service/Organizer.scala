@@ -14,7 +14,7 @@ class Organizer(scanner: PutioScanner, putioClient: PutioClient) {
 
   def organize()(implicit ec: ExecutionContext, system: ActorSystem, mat: ActorMaterializer) = {
 
-    var dict = scanner.scan(LibraryFolderId)
+    var dict = scanner.scanUnder(LibraryFolderId)
 
     scanner.getDownloadedVideos(DownloadsFolderId)
       .foreach { file =>
