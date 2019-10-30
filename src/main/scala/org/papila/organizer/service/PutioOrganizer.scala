@@ -5,9 +5,9 @@ import akka.actor.ActorSystem
 import akka.stream.scaladsl.{Flow, Sink, Source, SourceQueueWithComplete}
 import akka.stream.{ActorMaterializer, OverflowStrategy}
 import org.papila.organizer.client.PutioClient
-import org.papila.organizer.client.PutioClient.PutIoFile
+import org.papila.organizer.client.PutioClient.{FolderId, PutIoFile}
 import org.papila.organizer.service.Organizer._
-import org.papila.organizer.service.StringUtils.fileToEpisode
+import org.papila.organizer.service.FileNameParser.fileToEpisode
 
 import scala.concurrent.ExecutionContext
 
@@ -56,7 +56,7 @@ trait PutioOrganizer {
   def organize(root: Folder, client: PutioClient, service: PutIoService) = {
     val (queue, src) = videoFinderRecursive(service)
     val f = src via folderCreatorFlow(root, client) runWith(Sink.ignore)
-    service.offerFilesUnderDir(Organizer.DownloadsFolderId, queue)
+    service.offerFilesUnderDir(606680222, queue)
     f
   }
 

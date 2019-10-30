@@ -13,7 +13,7 @@ class PutIoService(client: PutioClient)
                    mat: ActorMaterializer,
                    ec: ExecutionContext) {
   def offerFilesUnderDir(id: FolderId, srcQueue: SourceQueueWithComplete[PutIoFile]): Unit =
-    client.listFiles(id, None, "100").files
+    client.listFiles(id, None, "10").files
       .foreach(srcQueue.offer)
 
 

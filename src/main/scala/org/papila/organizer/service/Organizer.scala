@@ -4,7 +4,7 @@ import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
 import org.papila.organizer.client.PutioClient
 import org.papila.organizer.client.PutioClient.{PutIoFile, FileId, FolderId}
-import org.papila.organizer.service.StringUtils.fileToEpisode
+import org.papila.organizer.service.FileNameParser.fileToEpisode
 
 import scala.concurrent.ExecutionContext
 

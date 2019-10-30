@@ -2,7 +2,6 @@ package org.papila.organizer
 
 import akka.actor.ActorSystem
 import akka.stream.ActorMaterializer
-import akka.stream.scaladsl.{Keep, Sink}
 import org.papila.organizer.client.PutioClient
 import org.papila.organizer.client.PutioClient.FileName
 import org.papila.organizer.service.Organizer.{Folder, LibraryFolderId}
@@ -25,7 +24,7 @@ object GraphPutio extends App with PutioOrganizer {
   var dict: Map[FileName, Organizer.Folder] = scanner.scanUnder(LibraryFolderId)
 
   Await.result(
-    organize(Folder("Tv Series", LibraryFolderId, dict), putIoClient, putIoService),
+    organize(Folder("Tv Series", 606680222, dict), putIoClient, putIoService),
     100 seconds
   )
 }
