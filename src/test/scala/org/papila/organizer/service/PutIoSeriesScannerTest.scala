@@ -13,14 +13,14 @@ import org.papila.organizer.service.Organizer.Folder
 import scala.concurrent.ExecutionContext
 import org.scalatest.mockito.MockitoSugar.mock
 
-class PutioScannerTest extends TestKit(ActorSystem("PutioScannerTest")) with FlatSpecLike with BeforeAndAfterEach {
+class PutIoSeriesScannerTest extends TestKit(ActorSystem("PutioScannerTest")) with FlatSpecLike with BeforeAndAfterEach {
 
   implicit val ec = ExecutionContext.global
   implicit val materializer: ActorMaterializer = ActorMaterializer()
 
   val clientImpl = mock[PutioClient]
 
-  val scanner = new PutioScanner(clientImpl)
+  val scanner = new PutIoSeriesScanner(clientImpl)
 
   override def beforeEach() {
     reset(clientImpl)
@@ -41,7 +41,7 @@ class PutioScannerTest extends TestKit(ActorSystem("PutioScannerTest")) with Fla
   }
 
   "addSeries" should "return Series with all seasons scanned" in {
-    when(clientImpl.listFiles(seriesFolderFile.id, Some(FileType.Folder), "999"))
+    when(clientImpl.listFolders(seriesFolderFile.id))
       .thenReturn(
         FileListResponse(List(PutIoFile(25, "Season 05", downloadsFolderId), PutIoFile(26, "Season 06", downloadsFolderId)), PutIoFile(downloadsFolderId, seriesName, 0), None)
       )
@@ -57,7 +57,7 @@ class PutioScannerTest extends TestKit(ActorSystem("PutioScannerTest")) with Fla
     val folderName = "folder"
 
     // mock list download folder
-    when(clientImpl.listFiles(downloadsFolderId, Some(FileType.Folder), "999"))
+    when(clientImpl.listFolders(downloadsFolderId))
       .thenReturn(FileListResponse(List(PutIoFile(folderId, folderName, downloadsFolderId)), PutIoFile(downloadsFolderId, "Downloads", 0), None))
 
     // mock list folder

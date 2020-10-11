@@ -2,7 +2,7 @@ name := "PutioOrganizer"
 
 version := "0.1"
 
-scalaVersion := "2.12.8"
+scalaVersion := "2.12.10"
 
 val akkaHttpVersion = "10.1.7"
 val akkaVersion = "2.5.21"

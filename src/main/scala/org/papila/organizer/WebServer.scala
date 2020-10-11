@@ -8,7 +8,7 @@ import akka.stream.ActorMaterializer
 import org.papila.organizer.client.PutioClient
 import org.papila.organizer.client.PutioClient.FileName
 import org.papila.organizer.service.Organizer.{Folder, LibraryFolderId}
-import org.papila.organizer.service.{Organizer, PutIoService, PutioOrganizer, PutioScanner}
+import org.papila.organizer.service.{Organizer, PutIoService, PutioOrganizer, PutIoSeriesScanner}
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
 import scala.util.{Failure, Success}
@@ -21,12 +21,12 @@ object WebServer extends App with PutioOrganizer {
 
   val putioClient = new PutioClient("VTQWG4M3LK5I5LD7IL25")
   val putIoService = new PutIoService(putioClient)
-  val scanner = new PutioScanner(putioClient)
+  val scanner = new PutIoSeriesScanner(putioClient)
 
   val callbackRoute = path("callback") {
     post {
       Future {
-        val dict: Map[FileName, Organizer.Folder] = scanner.scanUnder(LibraryFolderId)
+        val dict: Map[FileName, Organizer.Folder] = scanner.scanSeries(LibraryFolderId)
         organize(Folder("Tv Series", LibraryFolderId, dict), putioClient, putIoService)
       } onComplete {
         case Failure(e) => println("Failed to organize: " + e.getMessage)

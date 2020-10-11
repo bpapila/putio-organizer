@@ -8,13 +8,13 @@ import org.papila.organizer.service.FileNameParser.fileToEpisode
 
 import scala.concurrent.ExecutionContext
 
-class Organizer(scanner: PutioScanner, putioClient: PutioClient) {
+class Organizer(scanner: PutIoSeriesScanner, putioClient: PutioClient) {
 
   import Organizer._
 
   def organize()(implicit ec: ExecutionContext, system: ActorSystem, mat: ActorMaterializer) = {
 
-    var dict = scanner.scanUnder(LibraryFolderId)
+    var dict = scanner.scanSeries(LibraryFolderId)
 
     scanner.getDownloadedVideos(DownloadsFolderId)
       .foreach { file =>

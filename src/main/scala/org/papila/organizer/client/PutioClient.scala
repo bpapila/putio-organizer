@@ -24,7 +24,9 @@ class PutioClient(val token: AccessToken)
   val url = Uri(s"https://api.put.io/v2/files/list")
   val tokenTuple = ("oauth_token", token)
 
-  def listFiles(f: FolderId, t: Option[FileType], perPage: String): FileListResponse = {
+  def listFolders(f: FolderId): FileListResponse = listFiles(f, Some(FileType.Folder))
+
+  def listFiles(f: FolderId, t: Option[FileType], perPage: String = "999"): FileListResponse = {
 
     val query = t match {
       case Some(fileType) => Query(tokenTuple, ("file_type", fileType.toString), ("parent_id", f.toString), ("per_page", perPage))
