@@ -7,7 +7,7 @@ import akka.stream.{ActorMaterializer, OverflowStrategy}
 import org.papila.organizer.client.PutioClient
 import org.papila.organizer.client.PutioClient.{FolderId, PutIoFile}
 import org.papila.organizer.service.Organizer._
-import org.papila.organizer.service.FileNameParser.fileToEpisode
+import org.papila.organizer.service.FileNameParser.{fileToEpisode, nameParsable}
 
 import scala.concurrent.ExecutionContext
 
@@ -37,8 +37,15 @@ trait PutioOrganizer {
     .filter((f: PutIoFile) => f.file_type == "VIDEO")
 
 
-  def fileNameExtractor: Flow[PutIoFile, Episode, NotUsed] =
-    Flow[PutIoFile].map(f => fileToEpisode(f))
+  /*
+  * Input: PutIoFiles
+  * Output: Episode
+  * Process: It tries to extract an Episode from name of the given file
+  */
+  def fileNameExtractorFlow: Flow[PutIoFile, Episode, NotUsed] =
+    Flow[PutIoFile].collect {
+      case f@PutIoFile(id, name, parent_id, file_type) if nameParsable(f) => fileToEpisode(f)
+    }
 
   def videoFinderRecursive(
                             putioService: PutIoService,
@@ -51,9 +58,8 @@ trait PutioOrganizer {
           queue,
           source
             .via(queueFilesUnderFolderFlow(queue, putioService))
-//            .via(videoFileFilter)
             .log("VIDEO FILE:", x => println(s"VIDEO FILE:     $x"))
-            .via(fileNameExtractor)
+            .via(fileNameExtractorFlow)
             .log("EXTRACTOR", x => println(s"EXTRACTOR:     $x"))
         )
     }

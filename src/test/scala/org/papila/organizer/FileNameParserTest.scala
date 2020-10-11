@@ -18,11 +18,11 @@ class FileNameParserTest extends FlatSpec {
   }
 
   "formatSeriesName" should "format series name normalizing it" in {
-    formatFileName("The.Walking.Dead") shouldBe "The Walking Dead"
-    formatFileName("Its.Always.Sunny.in.Philadelphia") shouldBe "Its Always Sunny In Philadelphia"
-    formatFileName("     Its.Always.Sunny.in.Philadelphia") shouldBe "Its Always Sunny In Philadelphia"
-    formatFileName("better_things   ") shouldBe "Better Things"
-    formatFileName("The Expanse - ") shouldBe "The Expanse"
+    extractMovie("The.Walking.Dead") shouldBe "The Walking Dead"
+    extractMovie("Its.Always.Sunny.in.Philadelphia") shouldBe "Its Always Sunny In Philadelphia"
+    extractMovie("     Its.Always.Sunny.in.Philadelphia") shouldBe "Its Always Sunny In Philadelphia"
+    extractMovie("better_things   ") shouldBe "Better Things"
+    extractMovie("The Expanse - ") shouldBe "The Expanse"
   }
 
   "fileToMovie" should "extract Movie(name, year, quality)" in {
