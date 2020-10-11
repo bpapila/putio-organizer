@@ -40,7 +40,7 @@ class PutioOrganizerSpec extends FlatSpec with BeforeAndAfter {
   }
 
   "filesSource" should "return queue source" in {
-    val source = putioOrganizer.filesSource(100)
+    val source = putioOrganizer.source(100)
 
     val (queue, f) = source.take(2).toMat(Sink.seq[PutIoFile])(Keep.both).run()
     queue.offer(Folder1)
@@ -51,11 +51,9 @@ class PutioOrganizerSpec extends FlatSpec with BeforeAndAfter {
 
   behavior of "fetchFolderFilesRecFlow"
 
-  it should "pass on "
-
   it should "call offerFilesUnderDir on folders" in {
 
-    val flowUnderTest = putioOrganizer.fetchFolderFilesRecFlow(queue, putIoService)
+    val flowUnderTest = putioOrganizer.queueFilesUnderFolderFlow(queue, putIoService)
 
     val f = Source[PutIoFile](List(Folder1, Folder2, File1))
       .via(flowUnderTest)
@@ -72,21 +70,9 @@ class PutioOrganizerSpec extends FlatSpec with BeforeAndAfter {
       .offerFilesUnderDir(File1.id, queue)
   }
 
-  it should "pass on files and folders" in {
+  it should "pass on video files" in {
 
-    val flowUnderTest = putioOrganizer.fetchFolderFilesRecFlow(queue, putIoService)
-
-    val f = Source[PutIoFile](List(Folder1, Folder2, File1))
-      .via(flowUnderTest)
-      .toMat(Sink.seq)(Keep.right)
-      .run()
-
-    val seq = Await.result(f, 3 seconds)
-    seq shouldBe Seq(Folder1, Folder2, File1)
-  }
-
-  "videoFileFilter" should "filter only video files" in {
-    val flowUnderTest = putioOrganizer.videoFileFilter
+    val flowUnderTest = putioOrganizer.queueFilesUnderFolderFlow(queue, putIoService)
 
     val f = Source[PutIoFile](List(Folder1, Folder2, File1))
       .via(flowUnderTest)

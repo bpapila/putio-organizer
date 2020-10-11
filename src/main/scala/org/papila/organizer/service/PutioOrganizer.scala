@@ -17,19 +17,25 @@ trait PutioOrganizer {
   implicit val materializer: ActorMaterializer
   implicit val ec: ExecutionContext
 
-  def filesSource(bufferSize: Int = 100): Source[PutIoFile, SourceQueueWithComplete[PutIoFile]] =
+  def source(bufferSize: Int = 100): Source[PutIoFile, SourceQueueWithComplete[PutIoFile]] =
     Source.queue[PutIoFile](100, OverflowStrategy.dropBuffer)
 
-  def fetchFolderFilesRecFlow(queue: SourceQueueWithComplete[PutIoFile], putIoService: PutIoService) = Flow[PutIoFile].collect {
+  /*
+   * Input: PutIoFiles
+   * Output: PutIoFiles - only of type VIDEO
+   * Process: It opens up FOLDERs and queues everything under the FOLDER
+   */
+  def queueFilesUnderFolderFlow(
+                                 queue: SourceQueueWithComplete[PutIoFile],
+                                 putIoService: PutIoService
+                               ): Flow[PutIoFile, PutIoFile, NotUsed] = Flow[PutIoFile].collect {
     case folder@PutIoFile(folderId, _, _, "FOLDER") =>
       putIoService.offerFilesUnderDir(folderId, queue)
       folder
-    case f@PutIoFile(_, _, _, "VIDEO") => f;
-  }
-
-  def videoFileFilter = Flow[PutIoFile].collect {
     case f@PutIoFile(_, _, _, "VIDEO") => f
   }
+    .filter((f: PutIoFile) => f.file_type == "VIDEO")
+
 
   def fileNameExtractor: Flow[PutIoFile, Episode, NotUsed] =
     Flow[PutIoFile].map(f => fileToEpisode(f))
@@ -39,13 +45,13 @@ trait PutioOrganizer {
                             bufferSize: Int = 100
                           ): (SourceQueueWithComplete[PutIoFile], Source[Episode, NotUsed]) = {
 
-    filesSource(bufferSize).preMaterialize() match {
+    source(bufferSize).preMaterialize() match {
       case (queue, source) =>
         (
           queue,
           source
-            .via(fetchFolderFilesRecFlow(queue, putioService))
-            .via(videoFileFilter)
+            .via(queueFilesUnderFolderFlow(queue, putioService))
+//            .via(videoFileFilter)
             .log("VIDEO FILE:", x => println(s"VIDEO FILE:     $x"))
             .via(fileNameExtractor)
             .log("EXTRACTOR", x => println(s"EXTRACTOR:     $x"))
