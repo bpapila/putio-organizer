@@ -47,7 +47,7 @@ trait PutioOrganizer {
       case f@PutIoFile(id, name, parent_id, file_type) if nameParsable(f) => fileToEpisode(f)
     }
 
-  def videoFinderRecursive(
+  def allVideosSource(
                             putioService: PutIoService,
                             bufferSize: Int = 100
                           ): (SourceQueueWithComplete[PutIoFile], Source[Episode, NotUsed]) = {
@@ -66,56 +66,45 @@ trait PutioOrganizer {
   }
 
   def organize(root: Folder, client: PutioClient, service: PutIoService) = {
-    val (queue, src) = videoFinderRecursive(service)
+    val (queue, src) = allVideosSource(service)
     val f = src via folderCreatorFlow(root, client) runWith(Sink.ignore)
     service.offerFilesUnderDir(606680222, queue)
     f
   }
 
-  def organizeFoldersFlow(): Flow[Episode, FilesMap, NotUsed] =
-    Flow[Episode].fold(Map.empty[String, File])(organizeSeriesIntoFolder)
+  /*
+  * Input: Episode
+  * Output: Episode
+  * Process: Checks if given episode has a folder. If not creates and updates the Folder. Folder is mutated.
+  */
+  def folderCreatorFlow(root: Folder, putioClient: PutioClient): Flow[Episode, Episode, NotUsed] = Flow[Episode].statefulMapConcat { () =>
+    var folder = root
+    episode => {
+      // Create series folder
+      if (!folder.hasSubFolder(episode.series)) {
+        val seriesPutioFolder = putioClient.createFolder(episode.series, folder.folderId).file
+        folder = folder.addSubFolder(Folder(seriesPutioFolder.name, seriesPutioFolder.id))
+      }
 
-  def organizeSeriesIntoFolder(fs: FilesMap, e: Episode): Map[String, File] = {
+      var seriesFolder = folder.items(episode.series)
 
-    val fsWithSeries = createFileEntry(fs, e.series)
+      // Create season folder
+      if (!seriesFolder.hasSubFolder(s"Season ${episode.seasonNo}")) {
+        val seasonPutioFolder = putioClient.createFolder(s"Season ${episode.seasonNo}", seriesFolder.folderId).file
+        seriesFolder = seriesFolder.addSubFolder(Folder(seasonPutioFolder.name, seasonPutioFolder.id))
+      }
 
-    val seriesFolder = fsWithSeries(e.series)
-    val seasons = seriesFolder.items ++ createFileEntry(seriesFolder.items, e.seasonNo)
+      folder = folder.addSubFolder(seriesFolder)
 
-    fsWithSeries + (
-      e.series -> fsWithSeries(e.series).copy(items = seasons)
-      )
+      val seasonFolderId = seriesFolder.items(s"Season ${episode.seasonNo}").folderId
+      putioClient.moveFile(episode.file.id, seasonFolderId)
+
+      List(episode)
+    }
   }
 
-  def folderCreatorFlow(root: Folder, putioClient: PutioClient): Flow[Episode, Episode, NotUsed] =
-    Flow[Episode].statefulMapConcat { () =>
-      var folder = root
-      episode => {
-        if (!folder.hasSubFolder(episode.series)) {
-          val seriesPutioFolder = putioClient.createFolder(episode.series, folder.folderId).file
-          folder = folder.addSubFolder(Folder(seriesPutioFolder.name, seriesPutioFolder.id))
-        }
-
-        var seriesFolder = folder.items(episode.series)
-        val seasonFolder = if (!seriesFolder.hasSubFolder(s"Season ${episode.seasonNo}")) {
-          val seasonPutioFolder = putioClient.createFolder(s"Season ${episode.seasonNo}", seriesFolder.folderId).file
-          val seasonFolder = Folder(seasonPutioFolder.name, seasonPutioFolder.id)
-          seriesFolder = seriesFolder.addSubFolder(seasonFolder)
-          seasonFolder
-        } else {
-          seriesFolder.items(s"Season ${episode.seasonNo}")
-        }
-
-        folder = folder.addSubFolder(seriesFolder)
-
-        putioClient.moveFile(episode.file.id, seasonFolder.folderId)
-
-        List(episode)
-      }
-    }
-
   def createFileEntry(fs: FilesMap, key: String): FilesMap = {
-    fs get key match {
+    fs.get(key) match {
       case None => fs + (key -> File(key))
       case Some(_) => fs
     }

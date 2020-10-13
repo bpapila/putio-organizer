@@ -97,31 +97,6 @@ class PutioOrganizerSpec extends FlatSpec with BeforeAndAfter {
     fcUpdated("test") shouldBe File("test")
   }
 
-  "organizeSeriesIntoFolder" should "create subfolder" in {
-    val fc: FilesMap = Map.empty[String, File]
-
-    val episode = Episode("Six Feet Under", "2", "1", mock[PutIoFile])
-
-    val updatedFc = GraphPutio.organizeSeriesIntoFolder(fc, episode)
-
-    updatedFc(episode.series) shouldBe
-      File(episode.series, Map(episode.seasonNo -> File(episode.seasonNo)))
-  }
-
-  "organizeFoldersFlow" should "organize files into folder structure" in {
-
-    val testList = List(SixFeetUnderS02E01, SixFeetUnderS02E02, SixFeetUnderS03E09, SopranosEpisode)
-
-    val res = Source(testList)
-      .via(GraphPutio.organizeFoldersFlow())
-      .toMat(Sink.head)(Keep.right)
-      .run()
-
-    val result = Await.result(res, 3 seconds)
-    result shouldBe FolderContents
-
-  }
-
   "folderCreatorFlow" should "create missing series and season folders" in {
     val rootFolder = Folder("TV Series", 1)
 
