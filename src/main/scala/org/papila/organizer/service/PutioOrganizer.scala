@@ -2,19 +2,18 @@ package org.papila.organizer.service
 
 import akka.NotUsed
 import akka.actor.ActorSystem
+import akka.stream.OverflowStrategy
 import akka.stream.scaladsl.{Flow, Sink, Source, SourceQueueWithComplete}
-import akka.stream.{ActorMaterializer, OverflowStrategy}
 import org.papila.organizer.client.PutioClient
-import org.papila.organizer.client.PutioClient.{FolderId, PutIoFile}
-import org.papila.organizer.service.Organizer._
+import org.papila.organizer.client.PutioClient.PutIoFile
 import org.papila.organizer.service.FileNameParser.{fileToEpisode, nameParsable}
+import org.papila.organizer.service.Organizer._
 
 import scala.concurrent.ExecutionContext
 
 trait PutioOrganizer {
 
   implicit val system: ActorSystem
-  implicit val materializer: ActorMaterializer
   implicit val ec: ExecutionContext
 
   def source(bufferSize: Int = 100): Source[PutIoFile, SourceQueueWithComplete[PutIoFile]] =
@@ -77,26 +76,43 @@ trait PutioOrganizer {
   * Output: Episode
   * Process: Checks if given episode has a folder. If not creates and updates the Folder. Folder is mutated.
   */
-  def folderCreatorFlow(root: Folder, putioClient: PutioClient): Flow[Episode, ShowsLibrary, NotUsed] =
-    Flow[Episode].fold((ShowsLibrary(root))) { (library, episode) => {
-      val finalLibrary = (library.getShow(episode.showName) match {
-        case None =>
-          val seriesPutioFolder = putioClient.createFolder(episode.showName, parentId = library.libraryFolderId).file
-          library.addShow(Folder(seriesPutioFolder.name, seriesPutioFolder.id))
-        case Some(f) => library
-      }).getSeason(episode.showName, episode.seasonFolderName) match {
-        case None =>
-          val seasonPutioFolder = putioClient.createFolder(episode.seasonFolderName, library.getShow(episode.showName).get.folderId).file
-          library.addSeries(episode.showName, Folder(seasonPutioFolder.name, seasonPutioFolder.id))
+  def folderCreatorFlow(root: Folder, putioClient: PutioClient): Flow[Episode, ShowsLibrary, NotUsed] = {
+    def createAddSeries(library: ShowsLibrary, episode: Episode) = {
+      val seriesPutioFolder = putioClient.createFolder(episode.showName, parentId = library.libraryFolderId).file
+      val temp = library.addShow(Folder(seriesPutioFolder.name, seriesPutioFolder.id))
+      temp
+    }
+
+    def createAddSeason(library: ShowsLibrary, episode: Episode) = {
+      val seasonPutioFolder = putioClient.createFolder(episode.seasonFolderName, library.getShow(episode.showName).get.folderId).file
+      Console.println("*******", seasonPutioFolder)
+      val temp = library.addSeason(episode.showName, Folder(seasonPutioFolder.name, seasonPutioFolder.id))
+      temp
+    }
+
+    Flow[Episode].fold(ShowsLibrary(root)) { (library, episode) =>
+      Console.println("STARTING", "library", library)
+      var updatedLibrary = library.getShow(episode.showName) match {
+        case None => createAddSeries(library, episode)
         case Some(f) => library
       }
 
-      finalLibrary.getSeason(episode.showName, episode.seasonFolderName).map { f =>
+      val bla = updatedLibrary.getSeason(episode.showName, episode.seasonFolderName) match {
+        case None => createAddSeason(library, episode)
+        case Some(f) => library
+      }
+
+      println("FINAL:" , updatedLibrary)
+
+      updatedLibrary.getSeason(episode.showName, episode.seasonFolderName).map { f =>
+        Console.println("MOVING FILES", episode)
         putioClient.moveFile(episode.file.id, f.folderId)
-        finalLibrary
+        updatedLibrary
       }.get
     }
-    }
+  }
+
+  def createAndAddToLibrary(library: ShowsLibrary, )
 
   //    Flow[Episode].statefulMapConcat { () =>
   //      var folder = root

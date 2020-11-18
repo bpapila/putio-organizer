@@ -1,11 +1,10 @@
 package org.papila.organizer
 
 import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
 import org.papila.organizer.client.PutioClient
 import org.papila.organizer.client.PutioClient.FileName
 import org.papila.organizer.service.Organizer.{Folder, LibraryFolderId}
-import org.papila.organizer.service.{Organizer, PutIoService, PutioOrganizer, PutIoSeriesScanner}
+import org.papila.organizer.service.{Organizer, PutIoSeriesScanner, PutIoService, PutioOrganizer}
 
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -13,7 +12,6 @@ import scala.concurrent.duration._
 object GraphPutio extends App with PutioOrganizer {
 
   implicit val system = ActorSystem("TestSystem")
-  implicit val materializer = ActorMaterializer()
   implicit val ec = system.dispatcher
 
   val putIoClient = new PutioClient(token = "VTQWG4M3LK5I5LD7IL25")

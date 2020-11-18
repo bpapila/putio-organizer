@@ -16,7 +16,6 @@ import org.scalatest.mockito.MockitoSugar.mock
 class PutIoSeriesScannerTest extends TestKit(ActorSystem("PutioScannerTest")) with FlatSpecLike with BeforeAndAfterEach {
 
   implicit val ec = ExecutionContext.global
-  implicit val materializer: ActorMaterializer = ActorMaterializer()
 
   val clientImpl = mock[PutioClient]
 

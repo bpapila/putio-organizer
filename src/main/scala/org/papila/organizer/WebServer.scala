@@ -4,11 +4,10 @@ import akka.actor.ActorSystem
 import akka.http.scaladsl.Http
 import akka.http.scaladsl.model.StatusCodes
 import akka.http.scaladsl.server.Directives._
-import akka.stream.ActorMaterializer
 import org.papila.organizer.client.PutioClient
 import org.papila.organizer.client.PutioClient.FileName
 import org.papila.organizer.service.Organizer.{Folder, LibraryFolderId}
-import org.papila.organizer.service.{Organizer, PutIoService, PutioOrganizer, PutIoSeriesScanner}
+import org.papila.organizer.service.{Organizer, PutIoSeriesScanner, PutIoService, PutioOrganizer}
 
 import scala.concurrent.{ExecutionContextExecutor, Future}
 import scala.util.{Failure, Success}
@@ -16,7 +15,6 @@ import scala.util.{Failure, Success}
 object WebServer extends App with PutioOrganizer {
 
   implicit val system: ActorSystem = ActorSystem("PutioOrganizer")
-  implicit val materializer: ActorMaterializer = ActorMaterializer()
   implicit val ec: ExecutionContextExecutor = system.dispatcher
 
   val putioClient = new PutioClient("VTQWG4M3LK5I5LD7IL25")

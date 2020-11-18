@@ -7,7 +7,6 @@ import akka.http.scaladsl.marshalling.Marshal
 import akka.http.scaladsl.model.Uri.Query
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.unmarshalling.Unmarshal
-import akka.stream.ActorMaterializer
 import org.papila.organizer.client.PutioClient.AccessToken
 import org.papila.organizer.client.PutioClient.FileType.FileType
 import spray.json.{DefaultJsonProtocol, JsonFormat, RootJsonFormat}
@@ -16,7 +15,7 @@ import scala.concurrent.duration._
 import scala.concurrent.{Await, ExecutionContext}
 
 class PutioClient(val token: AccessToken)
-                 (implicit ec: ExecutionContext, system: ActorSystem, materializer: ActorMaterializer) {
+                 (implicit ec: ExecutionContext, system: ActorSystem) {
 
   import PutioClient._
   import PutioJsonSupport._

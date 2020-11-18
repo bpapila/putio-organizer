@@ -1,9 +1,8 @@
 package org.papila.organizer.service
 
 import akka.actor.ActorSystem
-import akka.stream.ActorMaterializer
 import org.papila.organizer.client.PutioClient
-import org.papila.organizer.client.PutioClient.{PutIoFile, FileId, FolderId}
+import org.papila.organizer.client.PutioClient.{FileId, FolderId, PutIoFile}
 import org.papila.organizer.service.FileNameParser.fileToEpisode
 
 import scala.concurrent.ExecutionContext
@@ -12,7 +11,7 @@ class Organizer(scanner: PutIoSeriesScanner, putioClient: PutioClient) {
 
   import Organizer._
 
-  def organize()(implicit ec: ExecutionContext, system: ActorSystem, mat: ActorMaterializer) = {
+  def organize()(implicit ec: ExecutionContext, system: ActorSystem) = {
 
     var dict = scanner.scanSeries(LibraryFolderId)
 
@@ -62,12 +61,16 @@ object Organizer {
   case class ShowsLibrary(showsFolder: Folder) {
     val libraryFolderId = showsFolder.folderId
     def getShow(showName: String): Option[Folder] = showsFolder.items.get(showName)
-    def getSeason(showName: String, seasonFolderName: String): Option[Folder] = showsFolder.items(showName).items.get(seasonFolderName)
+    def getSeason(showName: String, seasonFolderName: String): Option[Folder] = {
+      println("###", "Getting season", showName, seasonFolderName)
+      println("###", showsFolder)
+      showsFolder.items(showName).items.get(seasonFolderName)
+    }
     def addShow(f: Folder): ShowsLibrary = ShowsLibrary(showsFolder.addSubFolder(f))
-    def addSeries(showName: String, seasonFolder: Folder): ShowsLibrary = ShowsLibrary(showsFolder.items(showName).addSubFolder(seasonFolder))
+    def addSeason(showName: String, seasonFolder: Folder): ShowsLibrary = ShowsLibrary(showsFolder.items(showName).addSubFolder(seasonFolder))
   }
   object ShowsLibrary {
-    def apply(f: Folder): ShowsLibrary = ShowsLibrary(f)
+    def apply(f: Folder): ShowsLibrary = new ShowsLibrary(f)
   }
 
   case class Folder(name: String, folderId: FolderId, items: Map[String, Folder] = Map.empty) {
@@ -98,17 +101,17 @@ object Organizer {
                  )
 
   sealed trait PutIoTask {
-    def run(client: PutioClient)(implicit ec: ExecutionContext, system: ActorSystem, mat: ActorMaterializer): PutIoFile
+    def run(client: PutioClient)(implicit ec: ExecutionContext, system: ActorSystem): PutIoFile
   }
 
   case class CreateFolderTask(name: String, parentId: FolderId) extends PutIoTask {
     override def run(client: PutioClient)
-                    (implicit ec: ExecutionContext, system: ActorSystem, mat: ActorMaterializer): PutIoFile =
+                    (implicit ec: ExecutionContext, system: ActorSystem): PutIoFile =
       client.createFolder(name, parentId).file
   }
 
   case class MoveTask(fileId: FileId, toFolderId: FileId) extends PutIoTask {
-    override def run(client: PutioClient)(implicit ec: ExecutionContext, system: ActorSystem, mat: ActorMaterializer): PutIoFile =
+    override def run(client: PutioClient)(implicit ec: ExecutionContext, system: ActorSystem): PutIoFile =
       client.moveFile(fileId, toFolderId)
   }
 
