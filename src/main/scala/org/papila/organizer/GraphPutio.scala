@@ -14,7 +14,7 @@ object GraphPutio extends App with PutioOrganizer {
   implicit val system = ActorSystem("TestSystem")
   implicit val ec = system.dispatcher
 
-  val putIoClient = new PutioClient(token = "VTQWG4M3LK5I5LD7IL25")
+  val putIoClient = new PutioClient(token = "your token here")
   val scanner: PutIoSeriesScanner = new PutIoSeriesScanner(putIoClient)
   val putIoService = new PutIoService(putIoClient)
 
